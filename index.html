@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>数据仪表板 · 经营数据分析</title>
+  <title>数据仪表板 · 收入与结算分析</title>
   <!-- 显式允许 eval，避免 ECharts 内部逻辑触发 CSP 报错 -->
   <meta http-equiv="Content-Security-Policy" content="script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.jsdelivr.net;">
   <script src="https://cdn.jsdelivr.net/npm/echarts@5.5.0/dist/echarts.min.js"></script>
@@ -238,8 +238,9 @@
   <span class="logo">📊 收入与结算仪表板</span>
   <a href="#section-rfc" class="active">收入对比</a>
   <a href="#section-tsi">结算对比</a>
+  <a href="#section-rfc-bar">收入条形</a>
+  <a href="#section-tsi-bar">结算条形</a>
   <a href="#section-pie">饼图</a>
-  <a href="#section-trend">趋势</a>
 </nav>
 
 <div class="dashboard">
@@ -260,11 +261,17 @@
       <div class="card-desc">按月份对比两个年份的结算金额，数据源 TSI.json</div>
       <span class="card-badge" style="background:#fff4e6;color:#f39c12;">查看详情 →</span>
     </a>
-    <a class="card" href="#section-pie">
-      <span class="card-icon">🥧</span>
-      <div class="card-title">分类饼图</div>
-      <div class="card-desc">按分类展示占比（待开发）</div>
-      <span class="card-badge" style="background:#e8f8ef;color:#27ae60;">即将上线</span>
+    <a class="card" href="#section-rfc-bar">
+      <span class="card-icon">📊</span>
+      <div class="card-title">收入分类条形图</div>
+      <div class="card-desc">按课程分类金额从高到低排序，数据源 CR.json</div>
+      <span class="card-badge" style="background:#e8f4ff;color:#2d7be8;">查看详情 →</span>
+    </a>
+    <a class="card" href="#section-tsi-bar">
+      <span class="card-icon">📋</span>
+      <div class="card-title">结算分类条形图</div>
+      <div class="card-desc">按课程分类金额从高到低排序，数据源 TSI.json</div>
+      <span class="card-badge" style="background:#e8f8ef;color:#27ae60;">查看详情 →</span>
     </a>
   </div>
 
@@ -354,17 +361,69 @@
     <div id="status-tsi" class="loading">正在加载 TSI.json…</div>
   </section>
 
+  <!-- ========== 收入分类条形图（CR.json） ========== -->
+  <section id="section-rfc-bar" class="detail-section">
+    <h2>📊 收入分类条形图</h2>
+    <p class="section-hint">数据源：CR.json（前端收入）· 按课程分类金额从高到低排序</p>
+
+    <div class="filters" id="filters-rfc-bar">
+      <div class="filter-item">
+        <label>公司</label>
+        <select id="rfcbar-company"><option value="">全部</option></select>
+      </div>
+      <div class="filter-item">
+        <label>年</label>
+        <select id="rfcbar-year"><option value="">全部</option></select>
+      </div>
+      <div class="filter-item">
+        <label>月</label>
+        <select id="rfcbar-month"><option value="">全部</option></select>
+      </div>
+      <div class="filter-item">
+        <label>收入分类</label>
+        <select id="rfcbar-incomeCat"><option value="">全部</option></select>
+      </div>
+      <button class="reset-btn" id="rfcbar-resetBtn">重置筛选</button>
+    </div>
+
+    <div id="chart-rfc-bar" class="chart-box"></div>
+    <div id="status-rfc-bar" class="loading">正在加载 CR.json…</div>
+  </section>
+
+  <!-- ========== 结算分类条形图（TSI.json） ========== -->
+  <section id="section-tsi-bar" class="detail-section">
+    <h2>📋 结算分类条形图</h2>
+    <p class="section-hint">数据源：TSI.json（终端结算）· 按课程分类金额从高到低排序</p>
+
+    <div class="filters" id="filters-tsi-bar">
+      <div class="filter-item">
+        <label>公司</label>
+        <select id="tsibar-company"><option value="">全部</option></select>
+      </div>
+      <div class="filter-item">
+        <label>年</label>
+        <select id="tsibar-year"><option value="">全部</option></select>
+      </div>
+      <div class="filter-item">
+        <label>月</label>
+        <select id="tsibar-month"><option value="">全部</option></select>
+      </div>
+      <div class="filter-item">
+        <label>收入分类</label>
+        <select id="tsibar-incomeCat"><option value="">全部</option></select>
+      </div>
+      <button class="reset-btn" id="tsibar-resetBtn">重置筛选</button>
+    </div>
+
+    <div id="chart-tsi-bar" class="chart-box"></div>
+    <div id="status-tsi-bar" class="loading">正在加载 TSI.json…</div>
+  </section>
+
   <!-- 其他占位 -->
   <section id="section-pie" class="detail-section">
     <h2>🥧 分类饼图</h2>
     <p class="section-hint">此处可放置饼图详细内容</p>
     <div class="placeholder-block">饼图区域（待开发）</div>
-  </section>
-
-  <section id="section-trend" class="detail-section">
-    <h2>📉 收入趋势分析</h2>
-    <p class="section-hint">此处可放置趋势图详细内容</p>
-    <div class="placeholder-block">趋势图区域（待开发）</div>
   </section>
 </div>
 
@@ -400,7 +459,6 @@
     });
   }
 
-  // 递归解包：找到第一个包含"年"字段的对象数组
   function extractRows(data) {
     if (Array.isArray(data)) {
       if (data.length > 0 && typeof data[0] === 'object' && data[0] !== null && '年' in data[0]) {
@@ -423,9 +481,9 @@
   }
 
   // ================================================================
-  // 创建一个图表控制器（每个 JSON 对应一个实例）
+  // 1. 对比柱状图控制器（原有逻辑，保持不变）
   // ================================================================
-  function createChartController(config) {
+  function createCompareController(config) {
     const {
       chartId, statusId,
       yearAId, yearBId, companyId, courseTypeId, courseCatId, incomeCatId, monthId, resetBtnId,
@@ -510,10 +568,8 @@
         tooltip: {
           trigger: 'axis',
           axisPointer: { type: 'shadow' },
-          // 使用纯文本模式，避免 HTML/eval 触发 CSP 错误
           renderMode: 'richText',
           formatter: function (params) {
-            // 纯文本，不用 HTML 标签
             let lines = [params[0].axisValue];
             params.forEach(p => {
               lines.push(`${p.seriesName}：${fmtNum(p.value)}`);
@@ -666,7 +722,6 @@
       refreshChart();
     }
 
-    // 加载数据
     fetch(jsonUrl)
       .then(res => {
         if (!res.ok) throw new Error(`HTTP ${res.status} - 无法加载 ${jsonUrl}`);
@@ -703,9 +758,221 @@
   }
 
   // ================================================================
-  // 初始化两个图表
+  // 2. 分类条形图控制器（新增）
+  //    筛选：公司、年、月、收入分类
+  //    维度：课程分类，按金额降序
   // ================================================================
-  createChartController({
+  function createRankBarController(config) {
+    const {
+      chartId, statusId,
+      companyId, yearId, monthId, incomeCatId, resetBtnId,
+      jsonUrl, barColor
+    } = config;
+
+    const chartDom = document.getElementById(chartId);
+    const myChart = echarts.init(chartDom);
+    const statusDiv = document.getElementById(statusId);
+
+    const companySelect = document.getElementById(companyId);
+    const yearSelect = document.getElementById(yearId);
+    const monthSelect = document.getElementById(monthId);
+    const incomeCatSelect = document.getElementById(incomeCatId);
+    const resetBtn = document.getElementById(resetBtnId);
+
+    let rawData = [];
+    let allYears = [];
+
+    // 筛选：公司、年、月、收入分类
+    function matchFilters(row) {
+      if (companySelect.value && row['公司'] !== companySelect.value) return false;
+      if (yearSelect.value && String(row['年']) !== String(yearSelect.value)) return false;
+      if (monthSelect.value && String(row['月']) !== String(monthSelect.value)) return false;
+      if (incomeCatSelect.value && row['收入分类'] !== incomeCatSelect.value) return false;
+      return true;
+    }
+
+    // 按课程分类聚合金额，并降序排序
+    function aggregateByCourseCat() {
+      const map = new Map();
+      rawData.forEach(row => {
+        if (!matchFilters(row)) return;
+        const cat = row['课程分类'] || '未分类';
+        const val = Number(row['金额']) || 0;
+        map.set(cat, (map.get(cat) || 0) + val);
+      });
+      // 转数组并按金额降序
+      const arr = Array.from(map.entries()).map(([name, value]) => ({ name, value }));
+      arr.sort((a, b) => b.value - a.value);
+      return arr;
+    }
+
+    function refreshChart() {
+      const data = aggregateByCourseCat();
+      if (data.length === 0) {
+        myChart.clear();
+        myChart.setOption({
+          title: { text: '当前筛选条件下无数据', left: 'center', top: 'center', textStyle: { color: '#9aa9b8', fontSize: 14, fontWeight: 400 } }
+        }, true);
+        return;
+      }
+
+      // 横向条形图：y 轴类别需要从下往上显示，所以反转数组
+      const reversed = [...data].reverse();
+      const categories = reversed.map(d => d.name);
+      const values = reversed.map(d => d.value);
+
+      const summaryParts = [];
+      if (companySelect.value) summaryParts.push(companySelect.value);
+      if (yearSelect.value) summaryParts.push(yearSelect.value + '年');
+      if (monthSelect.value) summaryParts.push(monthSelect.value + '月');
+      if (incomeCatSelect.value) summaryParts.push(incomeCatSelect.value);
+      const summaryText = summaryParts.length ? summaryParts.join(' · ') : '全部数据';
+
+      const option = {
+        tooltip: {
+          trigger: 'axis',
+          axisPointer: { type: 'shadow' },
+          renderMode: 'richText',
+          formatter: function (params) {
+            const p = params[0];
+            return `${p.name}\n金额：${fmtNum(p.value)}`;
+          },
+          backgroundColor: 'rgba(255,255,255,0.96)',
+          borderColor: '#cfd8dc',
+          borderWidth: 1,
+          textStyle: { color: '#1e2b3c', fontSize: 13 },
+          padding: [10, 14],
+          extraCssText: 'box-shadow: 0 6px 18px rgba(0,0,0,0.1); border-radius: 12px;'
+        },
+        grid: {
+          left: '3%',
+          right: '8%',
+          bottom: '3%',
+          top: 40,
+          containLabel: true
+        },
+        xAxis: {
+          type: 'value',
+          name: '金额',
+          nameTextStyle: { fontSize: 12, color: '#7a8b9c', padding: [0, 0, 0, 10] },
+          axisLabel: { fontSize: 12, color: '#4a5b6b', formatter: v => fmtNum(v) },
+          splitLine: { lineStyle: { color: '#eef2f7', type: 'dashed' } }
+        },
+        yAxis: {
+          type: 'category',
+          data: categories,
+          axisTick: { show: false },
+          axisLabel: { fontSize: 12, color: '#4a5b6b' },
+          axisLine: { lineStyle: { color: '#d0d9e2' } }
+        },
+        series: [
+          {
+            type: 'bar',
+            data: values,
+            itemStyle: { color: barColor, borderRadius: [0, 4, 4, 0] },
+            barWidth: '55%',
+            label: {
+              show: true,
+              position: 'right',
+              fontSize: 11,
+              color: '#4a5b6b',
+              formatter: p => fmtNum(p.value)
+            }
+          }
+        ],
+        graphic: [
+          {
+            type: 'text',
+            left: 0,
+            top: 0,
+            style: {
+              text: summaryText,
+              fontSize: 13,
+              fontWeight: 500,
+              fill: '#7a8b9c'
+            }
+          }
+        ]
+      };
+
+      myChart.setOption(option, true);
+    }
+
+    function initFilters() {
+      if (allYears.length === 0) {
+        yearSelect.innerHTML = '<option value="">无数据</option>';
+        yearSelect.disabled = true;
+        return;
+      }
+
+      // 年
+      fillSelect(yearSelect, allYears);
+      yearSelect.value = '';
+
+      // 公司 / 收入分类
+      fillSelect(companySelect, uniqSorted(rawData, '公司'));
+      fillSelect(incomeCatSelect, uniqSorted(rawData, '收入分类'));
+
+      // 月：1~12
+      monthSelect.innerHTML = '<option value="">全部</option>';
+      for (let m = 1; m <= 12; m++) {
+        const opt = document.createElement('option');
+        opt.value = m;
+        opt.textContent = m + '月';
+        monthSelect.appendChild(opt);
+      }
+
+      resetBtn.addEventListener('click', () => {
+        companySelect.value = '';
+        yearSelect.value = '';
+        monthSelect.value = '';
+        incomeCatSelect.value = '';
+        refreshChart();
+      });
+
+      [companySelect, yearSelect, monthSelect, incomeCatSelect].forEach(el => {
+        el.addEventListener('change', refreshChart);
+      });
+
+      refreshChart();
+    }
+
+    fetch(jsonUrl)
+      .then(res => {
+        if (!res.ok) throw new Error(`HTTP ${res.status} - 无法加载 ${jsonUrl}`);
+        return res.json();
+      })
+      .then(data => {
+        const rows = extractRows(data);
+        if (!rows || rows.length === 0) {
+          console.error(`${jsonUrl} 原始结构:`, JSON.stringify(data).slice(0, 500));
+          throw new Error(`未能从 ${jsonUrl} 中解析出包含"年"字段的数据数组`);
+        }
+
+        rawData = rows;
+        allYears = uniqSorted(rawData, '年');
+
+        statusDiv.style.display = 'none';
+        initFilters();
+      })
+      .catch(err => {
+        statusDiv.className = 'error';
+        statusDiv.innerHTML = `❌ 数据加载失败：${err.message}<br><br>
+          <span style="font-size:13px;color:#8899aa;">
+          请确认 ${jsonUrl} 与 HTML 文件在同一目录。
+          </span>`;
+        console.error(err);
+      });
+
+    window.addEventListener('resize', () => myChart.resize());
+  }
+
+  // ================================================================
+  // 初始化所有图表
+  // ================================================================
+
+  // 收入对比柱状图（RFC）
+  createCompareController({
     chartId: 'chart-rfc',
     statusId: 'status-rfc',
     yearAId: 'rfc-yearA',
@@ -720,7 +987,8 @@
     colorPair: ['#5470c6', '#fac858']
   });
 
-  createChartController({
+  // 结算对比柱状图（TSI）
+  createCompareController({
     chartId: 'chart-tsi',
     statusId: 'status-tsi',
     yearAId: 'tsi-yearA',
@@ -735,11 +1003,37 @@
     colorPair: ['#91cc75', '#ee6666']
   });
 
+  // 收入分类条形图（RFC）
+  createRankBarController({
+    chartId: 'chart-rfc-bar',
+    statusId: 'status-rfc-bar',
+    companyId: 'rfcbar-company',
+    yearId: 'rfcbar-year',
+    monthId: 'rfcbar-month',
+    incomeCatId: 'rfcbar-incomeCat',
+    resetBtnId: 'rfcbar-resetBtn',
+    jsonUrl: './CR.json',
+    barColor: '#5470c6'
+  });
+
+  // 结算分类条形图（TSI）
+  createRankBarController({
+    chartId: 'chart-tsi-bar',
+    statusId: 'status-tsi-bar',
+    companyId: 'tsibar-company',
+    yearId: 'tsibar-year',
+    monthId: 'tsibar-month',
+    incomeCatId: 'tsibar-incomeCat',
+    resetBtnId: 'tsibar-resetBtn',
+    jsonUrl: './TSI.json',
+    barColor: '#91cc75'
+  });
+
   // ================================================================
   // 导航平滑滚动 + 高亮
   // ================================================================
   const navLinks = document.querySelectorAll('.topnav a');
-  const sections = ['section-rfc', 'section-tsi', 'section-pie', 'section-trend'];
+  const sections = ['section-rfc', 'section-tsi', 'section-rfc-bar', 'section-tsi-bar', 'section-pie'];
 
   function setActiveNav(id) {
     navLinks.forEach(a => {
