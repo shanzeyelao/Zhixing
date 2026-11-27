@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>数据仪表板 · 收入与结算分析</title>
+  <title>数据仪表板 · 经营数据分析</title>
   <!-- 显式允许 eval，避免 ECharts 内部逻辑触发 CSP 报错 -->
   <meta http-equiv="Content-Security-Policy" content="script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.jsdelivr.net;">
   <script src="https://cdn.jsdelivr.net/npm/echarts@5.5.0/dist/echarts.min.js"></script>
@@ -251,7 +251,7 @@
     <a class="card" href="#section-rfc">
       <span class="card-icon">💰</span>
       <div class="card-title">收入对比柱状图</div>
-      <div class="card-desc">按月份对比两个年份的收入金额，数据源 RFC.json</div>
+      <div class="card-desc">按月份对比两个年份的收入金额，数据源 CR.json</div>
       <span class="card-badge">查看详情 →</span>
     </a>
     <a class="card" href="#section-tsi">
@@ -268,10 +268,10 @@
     </a>
   </div>
 
-  <!-- ========== 收入对比柱状图（RFC.json） ========== -->
+  <!-- ========== 收入对比柱状图（CR.json） ========== -->
   <section id="section-rfc" class="detail-section">
     <h2>💰 收入对比柱状图</h2>
-    <p class="section-hint">数据源：RFC.json（前端收入）· 选择两个年份和筛选条件，对比各月份收入金额</p>
+    <p class="section-hint">数据源：CR.json（前端收入）· 选择两个年份和筛选条件，对比各月份收入金额</p>
 
     <div class="filters" id="filters-rfc">
       <div class="filter-item">
@@ -308,7 +308,7 @@
     </div>
 
     <div id="chart-rfc" class="chart-box"></div>
-    <div id="status-rfc" class="loading">正在加载 RFC.json…</div>
+    <div id="status-rfc" class="loading">正在加载 CR.json…</div>
   </section>
 
   <!-- ========== 结算对比柱状图（TSI.json） ========== -->
@@ -716,7 +716,7 @@
     incomeCatId: 'rfc-incomeCat',
     monthId: 'rfc-month',
     resetBtnId: 'rfc-resetBtn',
-    jsonUrl: './RFC.json',
+    jsonUrl: './CR.json',
     colorPair: ['#5470c6', '#fac858']
   });
 
