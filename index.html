@@ -127,7 +127,7 @@
     <a class="card" href="#section-rce">
       <span class="card-icon">📈</span>
       <div class="card-title">收入/成本/利润组合图</div>
-      <div class="card-desc">按月份展示双公司收入、成本、利润嵌套柱 + 利润率折线，数据源 RCEDetail.json</div>
+      <div class="card-desc">双公司不同配色，按月份展示嵌套柱 + 利润率折线，数据源 RCEDetail.json</div>
       <span class="card-badge" style="background:#f3e8ff;color:#8e44ad;">查看详情 →</span>
     </a>
   </div>
@@ -200,10 +200,10 @@
     <div id="status-tsi-bar" class="loading">正在加载 TSI.json…</div>
   </section>
 
-  <!-- 收入/成本/利润组合图（改造版） -->
+  <!-- 收入/成本/利润组合图（双公司不同配色） -->
   <section id="section-rce" class="detail-section">
     <h2>📈 收入/成本/利润组合图</h2>
-    <p class="section-hint">数据源：RCEDetail.json · 按月份展示双公司收入、成本、利润嵌套柱，并叠加利润率折线</p>
+    <p class="section-hint">数据源：RCEDetail.json · 双公司不同配色，按月份展示收入、成本、利润嵌套柱，并叠加利润率折线</p>
 
     <div class="filters" id="filters-rce">
       <div class="filter-item"><label>公司</label><select id="rce-company"><option value="">全部</option></select></div>
@@ -264,7 +264,7 @@
   }
 
   /* ============================================================
-     1. 对比柱状图（月份对比两个年份）—— 原有逻辑
+     1. 对比柱状图（月份对比两个年份）
      ============================================================ */
   function createCompareController(config) {
     const {
@@ -532,15 +532,12 @@
   }
 
   /* ============================================================
-     3. 收入/成本/利润组合图 —— 改造版
-        按月份 + 双公司并排，收入柱为容器，成本柱在下，利润柱在上，
-        利润为负时利润柱在 0 轴下方，成本柱高度可大于收入柱。
-        叠加每月利润率折线。
+     3. 收入/成本/利润组合图 —— 双公司不同配色
      ============================================================ */
   function createRCEComboController(config) {
     const {
       chartId, statusId, companyId, yearId, monthId, subjectAttrId, resetBtnId,
-      jsonUrl, subjectColors
+      jsonUrl, companyPalettes
     } = config;
     const chartDom = document.getElementById(chartId);
     const myChart = echarts.init(chartDom);
@@ -556,10 +553,22 @@
     let allYears = [];
     const SUBJECTS = ['收入', '费用', '利润'];
 
-    // 需要展示的两个公司（取数据中出现的公司，默认前两个）
-    let displayCompanies = [];
+    // 每个公司的独立配色：收入（容器）/ 成本 / 利润 / 利润率折线
+    // companyPalettes 按公司名称排序后依次分配
+    const defaultPalette = {
+      income: '#5470c6',
+      cost: '#ee6666',
+      profit: '#91cc75',
+      line: '#e67e22'
+    };
+    const paletteList = companyPalettes || [
+      { income: '#5470c6', cost: '#f39c12', profit: '#2ecc71', line: '#e67e22' }, // 公司A：蓝/橙/绿/深橙
+      { income: '#9b59b6', cost: '#e74c3c', profit: '#1abc9c', line: '#8e44ad' }  // 公司B：紫/红/青/紫
+    ];
 
-    // 筛选：公司、年、月、科目属性
+    // 公司 → 配色映射
+    let companyColorMap = new Map();
+
     function matchFilters(row) {
       if (companySelect.value && row['公司'] !== companySelect.value) return false;
       if (yearSelect.value && String(row['年']) !== String(yearSelect.value)) return false;
@@ -568,9 +577,8 @@
       return true;
     }
 
-    // 聚合：公司 × 月 → { 收入, 费用, 利润 }
     function aggregateByCompanyMonth() {
-      const map = new Map(); // key: 公司|月
+      const map = new Map();
       rawData.forEach(row => {
         if (!matchFilters(row)) return;
         const comp = row['公司'] || '未知公司';
@@ -579,129 +587,95 @@
         const val = Number(row['金额']) || 0;
         if (!SUBJECTS.includes(subject)) return;
         if (!(month >= 1 && month <= 12)) return;
-
         const key = `${comp}|${month}`;
-        if (!map.has(key)) {
-          map.set(key, { company: comp, month, 收入: 0, 费用: 0, 利润: 0 });
-        }
+        if (!map.has(key)) map.set(key, { company: comp, month, 收入: 0, 费用: 0, 利润: 0 });
         map.get(key)[subject] += val;
       });
       return map;
     }
 
-    // 自定义渲染函数：收入柱（容器）+ 成本柱（下）+ 利润柱（上，可为负）
+    // 自定义渲染：收入柱（容器）+ 成本柱（下）+ 利润柱（上，可为负），按公司配色
     function renderNestedBar(params, api) {
-      const categoryIndex = api.value(0);       // 月份索引 0~11
-      const companyIdx = api.value(1);          // 公司在 displayCompanies 中的索引
+      const categoryIndex = api.value(0);
+      const companyIdx = api.value(1);
       const income = api.value(2);
       const cost = api.value(3);
       const profit = api.value(4);
+      const companyName = api.value(5); // 公司名，用于取配色
 
-      // 坐标系转换
+      const palette = companyColorMap.get(companyName) || defaultPalette;
+
       const xBase = api.coord([categoryIndex, 0])[0];
       const yZero = api.coord([categoryIndex, 0])[1];
       const yIncome = api.coord([categoryIndex, income])[1];
       const yCost = api.coord([categoryIndex, cost])[1];
 
-      // 柱宽：每个月份下两个公司并排，每个公司占一个“子槽”
-      const bandWidth = api.size([1, 0])[0]; // 一个类目宽度
-      const companySlot = bandWidth * 0.34;   // 每个公司占用的宽度
+      const bandWidth = api.size([1, 0])[0];
+      const companySlot = bandWidth * 0.34;
       const companyGap = bandWidth * 0.03;
       const totalWidth = displayCompanies.length * companySlot + (displayCompanies.length - 1) * companyGap;
       const startX = xBase - totalWidth / 2 + companyIdx * (companySlot + companyGap);
 
-      // 收入柱宽度（外层容器）
       const incomeWidth = companySlot * 0.88;
-      // 成本/利润柱宽度（内层）
       const innerWidth = companySlot * 0.55;
 
-      // 收入柱：从 0 到 income（绝对高度）
       const incomeHeight = Math.abs(yIncome - yZero);
       const incomeTop = Math.min(yIncome, yZero);
-      // 成本柱：从 0 到 cost
       const costHeight = Math.abs(yCost - yZero);
       const costTop = Math.min(yCost, yZero);
 
-      // 利润柱：从成本顶部开始，向上（正）或向下（负）
-      // 利润为正：底部 = 成本顶部（yCost），顶部 = yCost - profitHeight
-      // 利润为负：从成本顶部向下延伸
-      // 但注意：当利润为负时，成本柱高度可能大于收入柱，这是业务逻辑决定的，直接按数值绘制
       let profitY, profitHeight;
       if (profit >= 0) {
         const yProfitTop = api.coord([categoryIndex, cost + profit])[1];
         profitY = yProfitTop;
         profitHeight = Math.abs(yCost - yProfitTop);
       } else {
-        // 利润为负：从成本顶部（yCost）向下延伸
         const yProfitBottom = api.coord([categoryIndex, cost + profit])[1];
         profitY = yCost;
         profitHeight = Math.abs(yCost - yProfitBottom);
       }
 
-      // 绘制顺序：收入柱在最底层（半透明），成本柱、利润柱在上
       return {
         type: 'group',
         children: [
-          // 收入柱（宽，浅色半透明，作为容器）
           {
             type: 'rect',
-            shape: {
-              x: startX,
-              y: incomeTop,
-              width: incomeWidth,
-              height: incomeHeight
-            },
-            style: {
-              fill: subjectColors['收入'],
-              opacity: 0.25
-            }
+            shape: { x: startX, y: incomeTop, width: incomeWidth, height: incomeHeight },
+            style: { fill: palette.income, opacity: 0.25 }
           },
-          // 成本柱（内层，从0到成本）
           {
             type: 'rect',
-            shape: {
-              x: startX + (incomeWidth - innerWidth) / 2,
-              y: costTop,
-              width: innerWidth,
-              height: costHeight
-            },
-            style: {
-              fill: subjectColors['费用'],
-              opacity: 0.85
-            }
+            shape: { x: startX + (incomeWidth - innerWidth) / 2, y: costTop, width: innerWidth, height: costHeight },
+            style: { fill: palette.cost, opacity: 0.85 }
           },
-          // 利润柱（内层，从成本顶部开始，可为负）
           {
             type: 'rect',
-            shape: {
-              x: startX + (incomeWidth - innerWidth) / 2,
-              y: profitY,
-              width: innerWidth,
-              height: profitHeight
-            },
-            style: {
-              fill: subjectColors['利润'],
-              opacity: 0.95
-            }
+            shape: { x: startX + (incomeWidth - innerWidth) / 2, y: profitY, width: innerWidth, height: profitHeight },
+            style: { fill: palette.profit, opacity: 0.95 }
           }
         ]
       };
     }
 
+    let displayCompanies = [];
+
     function refreshChart() {
       const map = aggregateByCompanyMonth();
 
-      // 确定展示的公司（取筛选后数据中出现的公司，最多2个用于并排）
       const companySet = new Set();
       map.forEach(v => companySet.add(v.company));
       let companies = Array.from(companySet).sort((a, b) => a.localeCompare(b, 'zh'));
 
-      // 如果公司筛选器有具体值，优先显示该值；否则取前两个
       if (companySelect.value && companies.includes(companySelect.value)) {
         companies = [companySelect.value];
-        // 若只有一个公司，为了左右对比，如果数据中有其他公司，可补充？但按筛选逻辑只显示选中的
       }
       displayCompanies = companies.slice(0, 2);
+
+      // 为每个展示的公司分配配色
+      companyColorMap = new Map();
+      displayCompanies.forEach((comp, idx) => {
+        companyColorMap.set(comp, paletteList[idx % paletteList.length] || defaultPalette);
+      });
 
       if (displayCompanies.length === 0 || map.size === 0) {
         myChart.clear();
@@ -709,24 +683,18 @@
         return;
       }
 
-      // 构建自定义系列数据：[monthIdx, companyIdx, income, cost, profit]
       const customData = [];
-      const lineData = []; // 利润率折线，按公司分系列
-
-      // 每个月、每个公司
       for (let m = 1; m <= 12; m++) {
         displayCompanies.forEach((comp, ci) => {
           const key = `${comp}|${m}`;
           const rec = map.get(key) || { 收入: 0, 费用: 0, 利润: 0 };
-          const income = rec['收入'];
-          const cost = rec['费用'];
-          const profit = rec['利润'];
-          customData.push([m - 1, ci, income, cost, profit]);
+          customData.push([m - 1, ci, rec['收入'], rec['费用'], rec['利润'], comp]);
         });
       }
 
-      // 利润率折线：按公司分组，每个公司一条线
+      // 利润率折线：每个公司一条，颜色跟随公司
       const lineSeries = displayCompanies.map((comp, ci) => {
+        const palette = companyColorMap.get(comp);
         const data = [];
         for (let m = 1; m <= 12; m++) {
           const key = `${comp}|${m}`;
@@ -746,19 +714,44 @@
           smooth: true,
           symbol: 'circle',
           symbolSize: 6,
-          lineStyle: { width: 2, type: 'solid' },
-          itemStyle: { color: ci === 0 ? '#e67e22' : '#8e44ad' },
+          lineStyle: { width: 2, type: 'solid', color: palette.line },
+          itemStyle: { color: palette.line },
           label: {
             show: true,
             position: 'top',
             fontSize: 9,
+            color: palette.line,
             formatter: p => (p.value !== null && p.value !== undefined ? p.value + '%' : '')
           }
         };
       });
 
-      // 图例项：收入、成本、利润（代表柱体）+ 两个公司的利润率线
-      const legendData = ['收入', '费用', '利润', ...displayCompanies.map(c => `${c} 利润率`)];
+      // 图例：每个公司的收入/成本/利润色块 + 利润率折线
+      // 由于 custom 系列不会自动进图例，这里用 graphic 绘制静态图例
+      const legendItems = [];
+      let legendX = 0;
+      const legendY = 8;
+      const itemWidth = 12;
+      const gap = 6;
+      displayCompanies.forEach((comp) => {
+        const palette = companyColorMap.get(comp);
+        // 收入色块
+        legendItems.push({ type: 'rect', shape: { x: legendX, y: legendY, width: itemWidth, height: itemWidth }, style: { fill: palette.income, opacity: 0.25 } });
+        legendItems.push({ type: 'text', style: { text: `${comp}收入`, x: legendX + itemWidth + 3, y: legendY - 1, fontSize: 11, fill: '#4a5b6b' } });
+        legendX += itemWidth + 3 + comp.length * 12 + 8;
+        // 成本色块
+        legendItems.push({ type: 'rect', shape: { x: legendX, y: legendY, width: itemWidth, height: itemWidth }, style: { fill: palette.cost, opacity: 0.85 } });
+        legendItems.push({ type: 'text', style: { text: `${comp}费用`, x: legendX + itemWidth + 3, y: legendY - 1, fontSize: 11, fill: '#4a5b6b' } });
+        legendX += itemWidth + 3 + comp.length * 12 + 8;
+        // 利润色块
+        legendItems.push({ type: 'rect', shape: { x: legendX, y: legendY, width: itemWidth, height: itemWidth }, style: { fill: palette.profit, opacity: 0.95 } });
+        legendItems.push({ type: 'text', style: { text: `${comp}利润`, x: legendX + itemWidth + 3, y: legendY - 1, fontSize: 11, fill: '#4a5b6b' } });
+        legendX += itemWidth + 3 + comp.length * 12 + 8;
+        // 利润率线
+        legendItems.push({ type: 'line', shape: { x1: legendX, y1: legendY + 6, x2: legendX + 18, y2: legendY + 6 }, style: { stroke: palette.line, lineWidth: 2 } });
+        legendItems.push({ type: 'text', style: { text: `${comp}利润率`, x: legendX + 22, y: legendY - 1, fontSize: 11, fill: '#4a5b6b' } });
+        legendX += 22 + comp.length * 12 + 12;
+      });
 
       const summaryParts = [];
       if (companySelect.value) summaryParts.push(companySelect.value);
@@ -773,12 +766,9 @@
           axisPointer: { type: 'shadow' },
           renderMode: 'richText',
           formatter: function (params) {
-            // 由于 custom 系列的 tooltip 需要特殊处理，这里按轴触发，聚合显示
-            // 找到对应月份的原始数据
-            const monthIdx = params[0].data[0]; // 月份索引
+            const monthIdx = params[0].data[0];
             let lines = [`${monthIdx + 1}月`];
-            displayCompanies.forEach((comp, ci) => {
-              // 从 map 中取
+            displayCompanies.forEach((comp) => {
               const key = `${comp}|${monthIdx + 1}`;
               const rec = map.get(key);
               if (rec) {
@@ -800,21 +790,8 @@
           padding: [10, 14],
           extraCssText: 'box-shadow: 0 6px 18px rgba(0,0,0,0.1); border-radius: 12px;'
         },
-        legend: {
-          data: legendData,
-          top: 0,
-          left: 'center',
-          itemWidth: 14,
-          itemHeight: 10,
-          textStyle: { fontSize: 12, color: '#2c3e50' }
-        },
-        grid: {
-          left: '3%',
-          right: '6%',
-          bottom: '8%',
-          top: 60,
-          containLabel: true
-        },
+        legend: { show: false },
+        grid: { left: '3%', right: '6%', bottom: '8%', top: 70, containLabel: true },
         xAxis: {
           type: 'category',
           data: ['1月','2月','3月','4月','5月','6月','7月','8月','9月','10月','11月','12月'],
@@ -847,40 +824,15 @@
             renderItem: renderNestedBar,
             data: customData,
             encode: { x: 0, y: [2, 3, 4] },
-            // 用于 tooltip 显示
-            tooltip: {
-              formatter: function (params) {
-                return '';
-              }
-            },
-            // 不显示在图例中（用静态图例代替）
+            tooltip: { formatter: function () { return ''; } },
             legendHoverLink: false,
             z: 5
           },
-          ...lineSeries.map((s, idx) => ({
-            ...s,
-            // 为利润率折线添加图例关联
-            legendHoverLink: true,
-            z: 10
-          }))
+          ...lineSeries
         ],
-        // 自定义静态图例（因为 custom 系列不会自动出现在图例中）
         graphic: [
-          {
-            type: 'text',
-            left: 0,
-            top: 0,
-            style: { text: summaryText, fontSize: 13, fontWeight: 500, fill: '#7a8b9c' }
-          },
-          // 收入色块
-          { type: 'rect', left: 'center', top: 8, shape: { width: 12, height: 12 }, style: { fill: subjectColors['收入'], opacity: 0.25 } },
-          { type: 'text', left: 'center', top: 6, style: { text: '   收入', fontSize: 12, fill: '#2c3e50' } },
-          // 成本色块
-          { type: 'rect', left: 'center', top: 8, shape: { x: 80, width: 12, height: 12 }, style: { fill: subjectColors['费用'], opacity: 0.85 } },
-          { type: 'text', left: 'center', top: 6, style: { text: '         费用', fontSize: 12, fill: '#2c3e50' } },
-          // 利润色块
-          { type: 'rect', left: 'center', top: 8, shape: { x: 160, width: 12, height: 12 }, style: { fill: subjectColors['利润'], opacity: 0.95 } },
-          { type: 'text', left: 'center', top: 6, style: { text: '               利润', fontSize: 12, fill: '#2c3e50' } }
+          { type: 'text', left: 0, top: 0, style: { text: summaryText, fontSize: 13, fontWeight: 500, fill: '#7a8b9c' } },
+          ...legendItems
         ]
       };
 
@@ -963,7 +915,10 @@
     companyId: 'rce-company', yearId: 'rce-year',
     monthId: 'rce-month', subjectAttrId: 'rce-subjectAttr',
     resetBtnId: 'rce-resetBtn', jsonUrl: './RCEDetail.json',
-    subjectColors: { '收入': '#5470c6', '费用': '#ee6666', '利润': '#91cc75' }
+    companyPalettes: [
+      { income: '#5470c6', cost: '#f39c12', profit: '#2ecc71', line: '#e67e22' }, // 公司 A：蓝 / 橙 / 绿 / 深橙
+      { income: '#9b59b6', cost: '#e74c3c', profit: '#1abc9c', line: '#8e44ad' }  // 公司 B：紫 / 红 / 青 / 紫
+    ]
   });
 
   /* ============================================================
