@@ -91,7 +91,7 @@
   <a href="#section-tsi">结算对比</a>
   <a href="#section-rfc-bar">收入条形</a>
   <a href="#section-tsi-bar">结算条形</a>
-  <a href="#section-rce">收入/成本/利润</a>
+  <a href="#section-rce">收入/费用/利润</a>
   <a href="#section-pie">饼图</a>
 </nav>
 
@@ -126,8 +126,8 @@
     </a>
     <a class="card" href="#section-rce">
       <span class="card-icon">📈</span>
-      <div class="card-title">收入/成本/利润组合图</div>
-      <div class="card-desc">双公司不同配色，按月份展示嵌套柱 + 利润率折线，数据源 RCEDetail.json</div>
+      <div class="card-title">收入/费用/利润组合图</div>
+      <div class="card-desc">A/B 公司左右分开展示各 12 个月份，嵌套柱 + 利润率折线，数据源 RCEDetail.json</div>
       <span class="card-badge" style="background:#f3e8ff;color:#8e44ad;">查看详情 →</span>
     </a>
   </div>
@@ -200,10 +200,10 @@
     <div id="status-tsi-bar" class="loading">正在加载 TSI.json…</div>
   </section>
 
-  <!-- 收入/成本/利润组合图（双公司不同配色） -->
+  <!-- 收入/费用/利润组合图：A/B 公司左右分开各 12 个月份 -->
   <section id="section-rce" class="detail-section">
-    <h2>📈 收入/成本/利润组合图</h2>
-    <p class="section-hint">数据源：RCEDetail.json · 双公司不同配色，按月份展示收入、成本、利润嵌套柱，并叠加利润率折线</p>
+    <h2>📈 收入/费用/利润组合图</h2>
+    <p class="section-hint">数据源：RCEDetail.json · A 公司左半区 12 个月，B 公司右半区 12 个月，嵌套柱 + 各自利润率折线</p>
 
     <div class="filters" id="filters-rce">
       <div class="filter-item"><label>公司</label><select id="rce-company"><option value="">全部</option></select></div>
@@ -213,7 +213,7 @@
       <button class="reset-btn" id="rce-resetBtn">重置筛选</button>
     </div>
 
-    <div id="chart-rce" class="chart-box" style="height:560px;"></div>
+    <div id="chart-rce" class="chart-box" style="height:580px;"></div>
     <div id="status-rce" class="loading">正在加载 RCEDetail.json…</div>
   </section>
 
@@ -532,7 +532,10 @@
   }
 
   /* ============================================================
-     3. 收入/成本/利润组合图 —— 双公司不同配色
+     3. 收入/费用/利润组合图 —— A/B 公司左右分开各 12 个月份
+        左侧：A 公司 12 个月；右侧：B 公司 12 个月
+        每个公司内部仍为嵌套柱（收入容器 + 费用在下 + 利润在上/下），
+        并叠加各自公司的利润率折线。
      ============================================================ */
   function createRCEComboController(config) {
     const {
@@ -553,21 +556,33 @@
     let allYears = [];
     const SUBJECTS = ['收入', '费用', '利润'];
 
-    // 每个公司的独立配色：收入（容器）/ 成本 / 利润 / 利润率折线
-    // companyPalettes 按公司名称排序后依次分配
     const defaultPalette = {
-      income: '#5470c6',
-      cost: '#ee6666',
-      profit: '#91cc75',
-      line: '#e67e22'
+      income: '#5470c6', cost: '#ee6666', profit: '#91cc75', line: '#e67e22'
     };
     const paletteList = companyPalettes || [
-      { income: '#5470c6', cost: '#f39c12', profit: '#2ecc71', line: '#e67e22' }, // 公司A：蓝/橙/绿/深橙
-      { income: '#9b59b6', cost: '#e74c3c', profit: '#1abc9c', line: '#8e44ad' }  // 公司B：紫/红/青/紫
+      { income: '#5470c6', cost: '#f39c12', profit: '#2ecc71', line: '#e67e22' },
+      { income: '#9b59b6', cost: '#e74c3c', profit: '#1abc9c', line: '#8e44ad' }
     ];
-
-    // 公司 → 配色映射
     let companyColorMap = new Map();
+    let displayCompanies = [];
+
+    // X 轴类别：公司A 1月...12月 + 公司B 1月...12月（共 24 个类别，中间留一个空位分隔）
+    const xAxisData = [];
+    let separatorIndex = -1; // 分隔位置
+
+    function buildXAxis(companies) {
+      xAxisData.length = 0;
+      const monthLabels = ['1月','2月','3月','4月','5月','6月','7月','8月','9月','10月','11月','12月'];
+      companies.forEach((comp, idx) => {
+        monthLabels.forEach(m => xAxisData.push(`${comp}\n${m}`));
+        // 两个公司之间插入一个空类别作为视觉分隔
+        if (idx < companies.length - 1) {
+          xAxisData.push('');
+        }
+      });
+      // 分隔索引 = 第一个公司的 12 个月之后
+      separatorIndex = companies.length > 1 ? 12 : -1;
+    }
 
     function matchFilters(row) {
       if (companySelect.value && row['公司'] !== companySelect.value) return false;
@@ -594,14 +609,14 @@
       return map;
     }
 
-    // 自定义渲染：收入柱（容器）+ 成本柱（下）+ 利润柱（上，可为负），按公司配色
+    // 自定义渲染：categoryIndex 为 0~23（24 个类别），companyIdx 为 0~1
     function renderNestedBar(params, api) {
       const categoryIndex = api.value(0);
       const companyIdx = api.value(1);
       const income = api.value(2);
       const cost = api.value(3);
       const profit = api.value(4);
-      const companyName = api.value(5); // 公司名，用于取配色
+      const companyName = api.value(5);
 
       const palette = companyColorMap.get(companyName) || defaultPalette;
 
@@ -610,14 +625,11 @@
       const yIncome = api.coord([categoryIndex, income])[1];
       const yCost = api.coord([categoryIndex, cost])[1];
 
+      // 由于每个类别下只放一个公司（左右分开），柱宽可以比之前更大
       const bandWidth = api.size([1, 0])[0];
-      const companySlot = bandWidth * 0.34;
-      const companyGap = bandWidth * 0.03;
-      const totalWidth = displayCompanies.length * companySlot + (displayCompanies.length - 1) * companyGap;
-      const startX = xBase - totalWidth / 2 + companyIdx * (companySlot + companyGap);
-
-      const incomeWidth = companySlot * 0.88;
-      const innerWidth = companySlot * 0.55;
+      const incomeWidth = bandWidth * 0.65;
+      const innerWidth = bandWidth * 0.38;
+      const startX = xBase - incomeWidth / 2;
 
       const incomeHeight = Math.abs(yIncome - yZero);
       const incomeTop = Math.min(yIncome, yZero);
@@ -645,19 +657,17 @@
           },
           {
             type: 'rect',
-            shape: { x: startX + (incomeWidth - innerWidth) / 2, y: costTop, width: innerWidth, height: costHeight },
+            shape: { x: xBase - innerWidth / 2, y: costTop, width: innerWidth, height: costHeight },
             style: { fill: palette.cost, opacity: 0.85 }
           },
           {
             type: 'rect',
-            shape: { x: startX + (incomeWidth - innerWidth) / 2, y: profitY, width: innerWidth, height: profitHeight },
+            shape: { x: xBase - innerWidth / 2, y: profitY, width: innerWidth, height: profitHeight },
             style: { fill: palette.profit, opacity: 0.95 }
           }
         ]
       };
     }
-
-    let displayCompanies = [];
 
     function refreshChart() {
       const map = aggregateByCompanyMonth();
@@ -671,7 +681,6 @@
       }
       displayCompanies = companies.slice(0, 2);
 
-      // 为每个展示的公司分配配色
       companyColorMap = new Map();
       displayCompanies.forEach((comp, idx) => {
         companyColorMap.set(comp, paletteList[idx % paletteList.length] || defaultPalette);
@@ -683,27 +692,31 @@
         return;
       }
 
+      buildXAxis(displayCompanies);
+
+      // 构建自定义系列数据：每个公司在自己的 12 个类别上绘制
+      // 公司 0 占类别 0~11，公司 1 占类别 13~24（中间隔一个空类别 12）
       const customData = [];
-      for (let m = 1; m <= 12; m++) {
-        displayCompanies.forEach((comp, ci) => {
+      displayCompanies.forEach((comp, ci) => {
+        const offset = ci === 0 ? 0 : 13; // 第二个公司从 13 开始（12 是空位）
+        for (let m = 1; m <= 12; m++) {
           const key = `${comp}|${m}`;
           const rec = map.get(key) || { 收入: 0, 费用: 0, 利润: 0 };
-          customData.push([m - 1, ci, rec['收入'], rec['费用'], rec['利润'], comp]);
-        });
-      }
+          customData.push([offset + m - 1, ci, rec['收入'], rec['费用'], rec['利润'], comp]);
+        }
+      });
 
-      // 利润率折线：每个公司一条，颜色跟随公司
+      // 利润率折线：每个公司一条，只在自己 12 个类别上有数据
       const lineSeries = displayCompanies.map((comp, ci) => {
         const palette = companyColorMap.get(comp);
-        const data = [];
+        const offset = ci === 0 ? 0 : 13;
+        const data = new Array(xAxisData.length).fill(null);
         for (let m = 1; m <= 12; m++) {
           const key = `${comp}|${m}`;
           const rec = map.get(key);
           if (rec && rec['收入'] !== 0) {
             const rate = (rec['利润'] / rec['收入']) * 100;
-            data.push([m - 1, Number(rate.toFixed(2))]);
-          } else {
-            data.push([m - 1, null]);
+            data[offset + m - 1] = Number(rate.toFixed(2));
           }
         }
         return {
@@ -722,32 +735,27 @@
             fontSize: 9,
             color: palette.line,
             formatter: p => (p.value !== null && p.value !== undefined ? p.value + '%' : '')
-          }
+          },
+          connectNulls: false
         };
       });
 
-      // 图例：每个公司的收入/成本/利润色块 + 利润率折线
-      // 由于 custom 系列不会自动进图例，这里用 graphic 绘制静态图例
+      // 静态图例
       const legendItems = [];
       let legendX = 0;
       const legendY = 8;
       const itemWidth = 12;
-      const gap = 6;
       displayCompanies.forEach((comp) => {
         const palette = companyColorMap.get(comp);
-        // 收入色块
         legendItems.push({ type: 'rect', shape: { x: legendX, y: legendY, width: itemWidth, height: itemWidth }, style: { fill: palette.income, opacity: 0.25 } });
         legendItems.push({ type: 'text', style: { text: `${comp}收入`, x: legendX + itemWidth + 3, y: legendY - 1, fontSize: 11, fill: '#4a5b6b' } });
         legendX += itemWidth + 3 + comp.length * 12 + 8;
-        // 成本色块
         legendItems.push({ type: 'rect', shape: { x: legendX, y: legendY, width: itemWidth, height: itemWidth }, style: { fill: palette.cost, opacity: 0.85 } });
         legendItems.push({ type: 'text', style: { text: `${comp}费用`, x: legendX + itemWidth + 3, y: legendY - 1, fontSize: 11, fill: '#4a5b6b' } });
         legendX += itemWidth + 3 + comp.length * 12 + 8;
-        // 利润色块
         legendItems.push({ type: 'rect', shape: { x: legendX, y: legendY, width: itemWidth, height: itemWidth }, style: { fill: palette.profit, opacity: 0.95 } });
         legendItems.push({ type: 'text', style: { text: `${comp}利润`, x: legendX + itemWidth + 3, y: legendY - 1, fontSize: 11, fill: '#4a5b6b' } });
         legendX += itemWidth + 3 + comp.length * 12 + 8;
-        // 利润率线
         legendItems.push({ type: 'line', shape: { x1: legendX, y1: legendY + 6, x2: legendX + 18, y2: legendY + 6 }, style: { stroke: palette.line, lineWidth: 2 } });
         legendItems.push({ type: 'text', style: { text: `${comp}利润率`, x: legendX + 22, y: legendY - 1, fontSize: 11, fill: '#4a5b6b' } });
         legendX += 22 + comp.length * 12 + 12;
@@ -766,21 +774,23 @@
           axisPointer: { type: 'shadow' },
           renderMode: 'richText',
           formatter: function (params) {
-            const monthIdx = params[0].data[0];
-            let lines = [`${monthIdx + 1}月`];
-            displayCompanies.forEach((comp) => {
-              const key = `${comp}|${monthIdx + 1}`;
-              const rec = map.get(key);
-              if (rec) {
-                lines.push(`【${comp}】`);
-                lines.push(`  收入：${fmtNum(rec['收入'])}`);
-                lines.push(`  费用：${fmtNum(rec['费用'])}`);
-                lines.push(`  利润：${fmtNum(rec['利润'])}`);
-                if (rec['收入'] !== 0) {
-                  lines.push(`  利润率：${((rec['利润'] / rec['收入']) * 100).toFixed(2)}%`);
-                }
-              }
-            });
+            // 找到鼠标所在类别对应的公司和月份
+            const catIdx = params[0].dataIndex;
+            let comp, monthIdx;
+            if (catIdx <= 11) { comp = displayCompanies[0]; monthIdx = catIdx; }
+            else if (catIdx >= 13) { comp = displayCompanies[1]; monthIdx = catIdx - 13; }
+            else return '';
+
+            const key = `${comp}|${monthIdx + 1}`;
+            const rec = map.get(key);
+            if (!rec) return `${comp} ${monthIdx + 1}月\n无数据`;
+            let lines = [`${comp} · ${monthIdx + 1}月`];
+            lines.push(`收入：${fmtNum(rec['收入'])}`);
+            lines.push(`费用：${fmtNum(rec['费用'])}`);
+            lines.push(`利润：${fmtNum(rec['利润'])}`);
+            if (rec['收入'] !== 0) {
+              lines.push(`利润率：${((rec['利润'] / rec['收入']) * 100).toFixed(2)}%`);
+            }
             return lines.join('\n');
           },
           backgroundColor: 'rgba(255,255,255,0.96)',
@@ -794,9 +804,19 @@
         grid: { left: '3%', right: '6%', bottom: '8%', top: 70, containLabel: true },
         xAxis: {
           type: 'category',
-          data: ['1月','2月','3月','4月','5月','6月','7月','8月','9月','10月','11月','12月'],
+          data: xAxisData,
           axisTick: { alignWithLabel: true },
-          axisLabel: { fontSize: 12, color: '#4a5b6b' },
+          axisLabel: {
+            fontSize: 10,
+            color: '#4a5b6b',
+            interval: 0,
+            rotate: 0,
+            formatter: function (value) {
+              if (!value) return '';
+              // 返回两行：公司名 + 月份
+              return value;
+            }
+          },
           axisLine: { lineStyle: { color: '#d0d9e2' } }
         },
         yAxis: [
@@ -916,8 +936,8 @@
     monthId: 'rce-month', subjectAttrId: 'rce-subjectAttr',
     resetBtnId: 'rce-resetBtn', jsonUrl: './RCEDetail.json',
     companyPalettes: [
-      { income: '#5470c6', cost: '#f39c12', profit: '#2ecc71', line: '#e67e22' }, // 公司 A：蓝 / 橙 / 绿 / 深橙
-      { income: '#9b59b6', cost: '#e74c3c', profit: '#1abc9c', line: '#8e44ad' }  // 公司 B：紫 / 红 / 青 / 紫
+      { income: '#5470c6', cost: '#f39c12', profit: '#2ecc71', line: '#e67e22' }, // A 公司：蓝 / 橙 / 绿 / 深橙
+      { income: '#9b59b6', cost: '#e74c3c', profit: '#1abc9c', line: '#8e44ad' }  // B 公司：紫 / 红 / 青 / 紫
     ]
   });
 
