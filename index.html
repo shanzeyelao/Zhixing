@@ -1067,7 +1067,7 @@
   // 3. 收入/成本/利润组合图控制器（RCEDetail.json）
   //    筛选：公司、年、月、科目属性
   //    维度：公司 × 年份（分组）
-  //    系列：收入、成本、利润
+  //    系列：收入、费用、利润
   // ================================================================
   function createRCEComboController(config) {
     const {
@@ -1090,7 +1090,7 @@
     let allYears = [];
 
     // 收入 / 成本 / 利润 三个科目属性（中文）
-    const SUBJECTS = ['收入', '成本', '利润'];
+    const SUBJECTS = ['收入', '费用', '利润'];
 
     // 筛选：公司、年、月、科目属性
     function matchFilters(row) {
@@ -1103,7 +1103,7 @@
 
     // 聚合：按 公司 + 年份 分组，每个组内汇总收入/成本/利润
     function aggregate() {
-      const map = new Map(); // key: 公司 + '|' + 年, value: { 收入, 成本, 利润 }
+      const map = new Map(); // key: 公司 + '|' + 年, value: { 收入, 费用, 利润 }
       rawData.forEach(row => {
         if (!matchFilters(row)) return;
         const comp = row['公司'] || '未知公司';
@@ -1114,7 +1114,7 @@
 
         const key = `${comp}|${year}`;
         if (!map.has(key)) {
-          map.set(key, { company: comp, year, 收入: 0, 成本: 0, 利润: 0 });
+          map.set(key, { company: comp, year, 收入: 0, 费用: 0, 利润: 0 });
         }
         map.get(key)[subject] += val;
       });
@@ -1144,7 +1144,7 @@
 
       // 三个系列
       const seriesIncome = groups.map(g => g['收入']);
-      const seriesCost = groups.map(g => g['成本']);
+      const seriesCost = groups.map(g => g['费用']);
       const seriesProfit = groups.map(g => g['利润']);
 
       // 筛选摘要
@@ -1220,10 +1220,10 @@
             }
           },
           {
-            name: '成本',
+            name: '费用',
             type: 'bar',
             data: seriesCost,
-            itemStyle: { color: subjectColors['成本'], borderRadius: [4, 4, 0, 0] },
+            itemStyle: { color: subjectColors['费用'], borderRadius: [4, 4, 0, 0] },
             barWidth: '28%',
             label: {
               show: true,
@@ -1402,7 +1402,7 @@
     jsonUrl: './RCEDetail.json',
     subjectColors: {
       '收入': '#5470c6',
-      '成本': '#ee6666',
+      '费用': '#ee6666',
       '利润': '#91cc75'
     }
   });
