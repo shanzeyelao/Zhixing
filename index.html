@@ -103,7 +103,7 @@
     <a class="card" href="#section-rfc">
       <span class="card-icon">💰</span>
       <div class="card-title">收入对比柱状图</div>
-      <div class="card-desc">按月份对比两个年份的收入金额，数据源 RFC.json</div>
+      <div class="card-desc">按月份对比两个年份的收入金额，数据源 CR.json</div>
       <span class="card-badge">查看详情 →</span>
     </a>
     <a class="card" href="#section-tsi">
@@ -115,7 +115,7 @@
     <a class="card" href="#section-rfc-bar">
       <span class="card-icon">📊</span>
       <div class="card-title">收入分类条形图</div>
-      <div class="card-desc">两个年份对比，按年份 B 金额降序，数据源 RFC.json</div>
+      <div class="card-desc">两个年份对比，按年份 B 金额降序，数据源 CR.json</div>
       <span class="card-badge" style="background:#e8f4ff;color:#2d7be8;">查看详情 →</span>
     </a>
     <a class="card" href="#section-tsi-bar">
@@ -135,7 +135,7 @@
   <!-- 收入对比柱状图 -->
   <section id="section-rfc" class="detail-section">
     <h2>💰 收入对比柱状图</h2>
-    <p class="section-hint">数据源：RFC.json（前端收入）· 选择两个年份和筛选条件，对比各月份收入金额</p>
+    <p class="section-hint">数据源：CR.json（前端收入）· 选择两个年份和筛选条件，对比各月份收入金额</p>
     <div class="filters" id="filters-rfc">
       <div class="filter-item"><label>年份 A（系列1）</label><select id="rfc-yearA"></select></div>
       <div class="filter-item"><label>年份 B（系列2）</label><select id="rfc-yearB"></select></div>
@@ -147,7 +147,7 @@
       <button class="reset-btn" id="rfc-resetBtn">重置筛选</button>
     </div>
     <div id="chart-rfc" class="chart-box"></div>
-    <div id="status-rfc" class="loading">正在加载 RFC.json…</div>
+    <div id="status-rfc" class="loading">正在加载 CR.json…</div>
   </section>
 
   <!-- 结算对比柱状图 -->
@@ -171,7 +171,7 @@
   <!-- 收入分类条形图 -->
   <section id="section-rfc-bar" class="detail-section">
     <h2>📊 收入分类条形图</h2>
-    <p class="section-hint">数据源：RFC.json（前端收入）· 两个年份对比，按年份 B 金额降序</p>
+    <p class="section-hint">数据源：CR.json（前端收入）· 两个年份对比，按年份 B 金额降序</p>
     <div class="filters" id="filters-rfc-bar">
       <div class="filter-item"><label>年份 A（系列1）</label><select id="rfcbar-yearA"></select></div>
       <div class="filter-item"><label>年份 B（系列2 · 排序依据）</label><select id="rfcbar-yearB"></select></div>
@@ -181,7 +181,7 @@
       <button class="reset-btn" id="rfcbar-resetBtn">重置筛选</button>
     </div>
     <div id="chart-rfc-bar" class="chart-box"></div>
-    <div id="status-rfc-bar" class="loading">正在加载 RFC.json…</div>
+    <div id="status-rfc-bar" class="loading">正在加载 CR.json…</div>
   </section>
 
   <!-- 结算分类条形图 -->
@@ -930,7 +930,7 @@
     companyId: 'rfc-company', courseTypeId: 'rfc-courseType',
     courseCatId: 'rfc-courseCat', incomeCatId: 'rfc-incomeCat',
     monthId: 'rfc-month', resetBtnId: 'rfc-resetBtn',
-    jsonUrl: './RFC.json', colorPair: ['#5470c6', '#fac858']
+    jsonUrl: './CR.json', colorPair: ['#5470c6', '#fac858']
   });
 
   createCompareController({
@@ -947,7 +947,7 @@
     yearAId: 'rfcbar-yearA', yearBId: 'rfcbar-yearB',
     companyId: 'rfcbar-company', monthId: 'rfcbar-month',
     incomeCatId: 'rfcbar-incomeCat', resetBtnId: 'rfcbar-resetBtn',
-    jsonUrl: './RFC.json', colorPair: ['#5470c6', '#fac858']
+    jsonUrl: './CR.json', colorPair: ['#5470c6', '#fac858']
   });
 
   createRankCompareBarController({
