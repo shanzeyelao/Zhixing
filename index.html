@@ -200,7 +200,7 @@
     <div id="status-tsi-bar" class="loading">正在加载 TSI.json…</div>
   </section>
 
-  <!-- 收入/费用/利润组合图：A/B 公司左右分开各 12 个月份 -->
+  <!-- 收入/费用/利润组合图：图例左右分开，X轴用 A/B 区分公司 -->
   <section id="section-rce" class="detail-section">
     <h2>📈 收入/费用/利润组合图</h2>
     <p class="section-hint">数据源：RCEDetail.json · A 公司左半区 12 个月，B 公司右半区 12 个月，嵌套柱 + 各自利润率折线</p>
@@ -532,10 +532,7 @@
   }
 
   /* ============================================================
-     3. 收入/费用/利润组合图 —— A/B 公司左右分开各 12 个月份
-        左侧：A 公司 12 个月；右侧：B 公司 12 个月
-        每个公司内部仍为嵌套柱（收入容器 + 费用在下 + 利润在上/下），
-        并叠加各自公司的利润率折线。
+     3. 收入/费用/利润组合图 —— 图例左右分开，X轴 A/B 区分公司
      ============================================================ */
   function createRCEComboController(config) {
     const {
@@ -566,21 +563,19 @@
     let companyColorMap = new Map();
     let displayCompanies = [];
 
-    // X 轴类别：公司A 1月...12月 + 公司B 1月...12月（共 24 个类别，中间留一个空位分隔）
     const xAxisData = [];
-    let separatorIndex = -1; // 分隔位置
+    let separatorIndex = -1;
 
+    // X 轴：A 公司 12 个月 + 空位 + B 公司 12 个月，标签用 A/B 区分
     function buildXAxis(companies) {
       xAxisData.length = 0;
       const monthLabels = ['1月','2月','3月','4月','5月','6月','7月','8月','9月','10月','11月','12月'];
+      const companyTags = ['A', 'B'];
       companies.forEach((comp, idx) => {
-        monthLabels.forEach(m => xAxisData.push(`${comp}\n${m}`));
-        // 两个公司之间插入一个空类别作为视觉分隔
-        if (idx < companies.length - 1) {
-          xAxisData.push('');
-        }
+        const tag = companyTags[idx] || (idx + 1);
+        monthLabels.forEach(m => xAxisData.push(`${tag}${m}`));
+        if (idx < companies.length - 1) xAxisData.push('');
       });
-      // 分隔索引 = 第一个公司的 12 个月之后
       separatorIndex = companies.length > 1 ? 12 : -1;
     }
 
@@ -609,7 +604,6 @@
       return map;
     }
 
-    // 自定义渲染：categoryIndex 为 0~23（24 个类别），companyIdx 为 0~1
     function renderNestedBar(params, api) {
       const categoryIndex = api.value(0);
       const companyIdx = api.value(1);
@@ -625,7 +619,6 @@
       const yIncome = api.coord([categoryIndex, income])[1];
       const yCost = api.coord([categoryIndex, cost])[1];
 
-      // 由于每个类别下只放一个公司（左右分开），柱宽可以比之前更大
       const bandWidth = api.size([1, 0])[0];
       const incomeWidth = bandWidth * 0.65;
       const innerWidth = bandWidth * 0.38;
@@ -650,21 +643,9 @@
       return {
         type: 'group',
         children: [
-          {
-            type: 'rect',
-            shape: { x: startX, y: incomeTop, width: incomeWidth, height: incomeHeight },
-            style: { fill: palette.income, opacity: 0.25 }
-          },
-          {
-            type: 'rect',
-            shape: { x: xBase - innerWidth / 2, y: costTop, width: innerWidth, height: costHeight },
-            style: { fill: palette.cost, opacity: 0.85 }
-          },
-          {
-            type: 'rect',
-            shape: { x: xBase - innerWidth / 2, y: profitY, width: innerWidth, height: profitHeight },
-            style: { fill: palette.profit, opacity: 0.95 }
-          }
+          { type: 'rect', shape: { x: startX, y: incomeTop, width: incomeWidth, height: incomeHeight }, style: { fill: palette.income, opacity: 0.25 } },
+          { type: 'rect', shape: { x: xBase - innerWidth / 2, y: costTop, width: innerWidth, height: costHeight }, style: { fill: palette.cost, opacity: 0.85 } },
+          { type: 'rect', shape: { x: xBase - innerWidth / 2, y: profitY, width: innerWidth, height: profitHeight }, style: { fill: palette.profit, opacity: 0.95 } }
         ]
       };
     }
@@ -694,11 +675,9 @@
 
       buildXAxis(displayCompanies);
 
-      // 构建自定义系列数据：每个公司在自己的 12 个类别上绘制
-      // 公司 0 占类别 0~11，公司 1 占类别 13~24（中间隔一个空类别 12）
       const customData = [];
       displayCompanies.forEach((comp, ci) => {
-        const offset = ci === 0 ? 0 : 13; // 第二个公司从 13 开始（12 是空位）
+        const offset = ci === 0 ? 0 : 13;
         for (let m = 1; m <= 12; m++) {
           const key = `${comp}|${m}`;
           const rec = map.get(key) || { 收入: 0, 费用: 0, 利润: 0 };
@@ -706,7 +685,6 @@
         }
       });
 
-      // 利润率折线：每个公司一条，只在自己 12 个类别上有数据
       const lineSeries = displayCompanies.map((comp, ci) => {
         const palette = companyColorMap.get(comp);
         const offset = ci === 0 ? 0 : 13;
@@ -729,36 +707,41 @@
           symbolSize: 6,
           lineStyle: { width: 2, type: 'solid', color: palette.line },
           itemStyle: { color: palette.line },
-          label: {
-            show: true,
-            position: 'top',
-            fontSize: 9,
-            color: palette.line,
-            formatter: p => (p.value !== null && p.value !== undefined ? p.value + '%' : '')
-          },
+          label: { show: true, position: 'top', fontSize: 9, color: palette.line, formatter: p => (p.value !== null && p.value !== undefined ? p.value + '%' : '') },
           connectNulls: false
         };
       });
 
-      // 静态图例
-      const legendItems = [];
-      let legendX = 0;
-      const legendY = 8;
-      const itemWidth = 12;
+      // 图例：左侧柱图图例，右侧折线图例，分开两边
+      const barLegendItems = [];
+      let bx = 20;
+      const by = 10;
       displayCompanies.forEach((comp) => {
         const palette = companyColorMap.get(comp);
-        legendItems.push({ type: 'rect', shape: { x: legendX, y: legendY, width: itemWidth, height: itemWidth }, style: { fill: palette.income, opacity: 0.25 } });
-        legendItems.push({ type: 'text', style: { text: `${comp}收入`, x: legendX + itemWidth + 3, y: legendY - 1, fontSize: 11, fill: '#4a5b6b' } });
-        legendX += itemWidth + 3 + comp.length * 12 + 8;
-        legendItems.push({ type: 'rect', shape: { x: legendX, y: legendY, width: itemWidth, height: itemWidth }, style: { fill: palette.cost, opacity: 0.85 } });
-        legendItems.push({ type: 'text', style: { text: `${comp}费用`, x: legendX + itemWidth + 3, y: legendY - 1, fontSize: 11, fill: '#4a5b6b' } });
-        legendX += itemWidth + 3 + comp.length * 12 + 8;
-        legendItems.push({ type: 'rect', shape: { x: legendX, y: legendY, width: itemWidth, height: itemWidth }, style: { fill: palette.profit, opacity: 0.95 } });
-        legendItems.push({ type: 'text', style: { text: `${comp}利润`, x: legendX + itemWidth + 3, y: legendY - 1, fontSize: 11, fill: '#4a5b6b' } });
-        legendX += itemWidth + 3 + comp.length * 12 + 8;
-        legendItems.push({ type: 'line', shape: { x1: legendX, y1: legendY + 6, x2: legendX + 18, y2: legendY + 6 }, style: { stroke: palette.line, lineWidth: 2 } });
-        legendItems.push({ type: 'text', style: { text: `${comp}利润率`, x: legendX + 22, y: legendY - 1, fontSize: 11, fill: '#4a5b6b' } });
-        legendX += 22 + comp.length * 12 + 12;
+        const tag = displayCompanies.length === 2 ? (comp === displayCompanies[0] ? 'A' : 'B') : 'A';
+        // 收入
+        barLegendItems.push({ type: 'rect', shape: { x: bx, y: by, width: 12, height: 12 }, style: { fill: palette.income, opacity: 0.25 } });
+        barLegendItems.push({ type: 'text', style: { text: `${tag}收入`, x: bx + 16, y: by - 1, fontSize: 11, fill: '#4a5b6b' } });
+        bx += 16 + 48;
+        // 费用
+        barLegendItems.push({ type: 'rect', shape: { x: bx, y: by, width: 12, height: 12 }, style: { fill: palette.cost, opacity: 0.85 } });
+        barLegendItems.push({ type: 'text', style: { text: `${tag}费用`, x: bx + 16, y: by - 1, fontSize: 11, fill: '#4a5b6b' } });
+        bx += 16 + 48;
+        // 利润
+        barLegendItems.push({ type: 'rect', shape: { x: bx, y: by, width: 12, height: 12 }, style: { fill: palette.profit, opacity: 0.95 } });
+        barLegendItems.push({ type: 'text', style: { text: `${tag}利润`, x: bx + 16, y: by - 1, fontSize: 11, fill: '#4a5b6b' } });
+        bx += 16 + 48;
+      });
+
+      const lineLegendItems = [];
+      let lx = 600;
+      const ly = 10;
+      displayCompanies.forEach((comp) => {
+        const palette = companyColorMap.get(comp);
+        const tag = displayCompanies.length === 2 ? (comp === displayCompanies[0] ? 'A' : 'B') : 'A';
+        lineLegendItems.push({ type: 'line', shape: { x1: lx, y1: ly + 6, x2: lx + 18, y2: ly + 6 }, style: { stroke: palette.line, lineWidth: 2 } });
+        lineLegendItems.push({ type: 'text', style: { text: `${tag}利润率`, x: lx + 22, y: ly - 1, fontSize: 11, fill: '#4a5b6b' } });
+        lx += 22 + 70;
       });
 
       const summaryParts = [];
@@ -774,17 +757,16 @@
           axisPointer: { type: 'shadow' },
           renderMode: 'richText',
           formatter: function (params) {
-            // 找到鼠标所在类别对应的公司和月份
             const catIdx = params[0].dataIndex;
             let comp, monthIdx;
             if (catIdx <= 11) { comp = displayCompanies[0]; monthIdx = catIdx; }
             else if (catIdx >= 13) { comp = displayCompanies[1]; monthIdx = catIdx - 13; }
             else return '';
-
             const key = `${comp}|${monthIdx + 1}`;
             const rec = map.get(key);
             if (!rec) return `${comp} ${monthIdx + 1}月\n无数据`;
-            let lines = [`${comp} · ${monthIdx + 1}月`];
+            const tag = displayCompanies.length === 2 ? (comp === displayCompanies[0] ? 'A' : 'B') : 'A';
+            let lines = [`${tag} · ${comp} · ${monthIdx + 1}月`];
             lines.push(`收入：${fmtNum(rec['收入'])}`);
             lines.push(`费用：${fmtNum(rec['费用'])}`);
             lines.push(`利润：${fmtNum(rec['利润'])}`);
@@ -801,7 +783,7 @@
           extraCssText: 'box-shadow: 0 6px 18px rgba(0,0,0,0.1); border-radius: 12px;'
         },
         legend: { show: false },
-        grid: { left: '3%', right: '6%', bottom: '8%', top: 70, containLabel: true },
+        grid: { left: '3%', right: '6%', bottom: '8%', top: 80, containLabel: true },
         xAxis: {
           type: 'category',
           data: xAxisData,
@@ -812,9 +794,7 @@
             interval: 0,
             rotate: 0,
             formatter: function (value) {
-              if (!value) return '';
-              // 返回两行：公司名 + 月份
-              return value;
+              return value || '';
             }
           },
           axisLine: { lineStyle: { color: '#d0d9e2' } }
@@ -852,7 +832,8 @@
         ],
         graphic: [
           { type: 'text', left: 0, top: 0, style: { text: summaryText, fontSize: 13, fontWeight: 500, fill: '#7a8b9c' } },
-          ...legendItems
+          ...barLegendItems,
+          ...lineLegendItems
         ]
       };
 
@@ -936,8 +917,8 @@
     monthId: 'rce-month', subjectAttrId: 'rce-subjectAttr',
     resetBtnId: 'rce-resetBtn', jsonUrl: './RCEDetail.json',
     companyPalettes: [
-      { income: '#5470c6', cost: '#f39c12', profit: '#2ecc71', line: '#e67e22' }, // A 公司：蓝 / 橙 / 绿 / 深橙
-      { income: '#9b59b6', cost: '#e74c3c', profit: '#1abc9c', line: '#8e44ad' }  // B 公司：紫 / 红 / 青 / 紫
+      { income: '#5470c6', cost: '#f39c12', profit: '#2ecc71', line: '#e67e22' },
+      { income: '#9b59b6', cost: '#e74c3c', profit: '#1abc9c', line: '#8e44ad' }
     ]
   });
 
