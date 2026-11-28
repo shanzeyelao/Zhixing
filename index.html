@@ -57,7 +57,7 @@
       padding: 16px 18px; background: #f8fafd; border-radius: 14px; border: 1px solid #e9edf4;
       align-items: flex-end;
     }
-    .filter-item { display: flex; flex-direction: column; gap: 4px; min-width: 150px; }
+    .filter-item { display: flex; flex-direction: column; gap: 4px; min-width: 140px; }
     .filter-item label { font-size: 12px; font-weight: 600; color: #5a6b7e; letter-spacing: 0.4px; text-transform: uppercase; }
     .filter-item select {
       padding: 8px 12px; border-radius: 8px; border: 1px solid #cdd8e3;
@@ -65,6 +65,15 @@
     }
     .filter-item select:focus { border-color: #5470c6; }
     .filter-item select:disabled { background: #f0f2f5; color: #9aa9b8; cursor: not-allowed; }
+    .filter-group {
+      display: flex; flex-wrap: wrap; gap: 12px 18px;
+      padding: 10px 14px; border-radius: 10px;
+      border: 1px dashed #d0d9e2; background: #ffffff;
+    }
+    .filter-group .group-title {
+      width: 100%; font-size: 11px; font-weight: 700; color: #8899aa;
+      letter-spacing: 0.6px; text-transform: uppercase; margin-bottom: 2px;
+    }
     .reset-btn {
       align-self: flex-end; padding: 8px 18px; border-radius: 8px; border: 1px solid #5470c6;
       background: #fff; color: #5470c6; font-size: 14px; font-weight: 600; cursor: pointer;
@@ -102,6 +111,12 @@
       -webkit-appearance: none; width: 18px; height: 18px; border-radius: 50%;
       background: #5470c6; border: 3px solid #fff; box-shadow: 0 1px 4px rgba(0,0,0,0.2); cursor: pointer;
     }
+    .series-tag {
+      display: inline-block; font-size: 10px; font-weight: 700;
+      padding: 1px 6px; border-radius: 10px; margin-left: 4px;
+    }
+    .series-tag.a { background: #eef2ff; color: #5470c6; }
+    .series-tag.b { background: #fff4e6; color: #e67e22; }
   </style>
 </head>
 <body>
@@ -126,25 +141,25 @@
     <a class="card" href="#section-rfc">
       <span class="card-icon">💰</span>
       <div class="card-title">收入对比柱状图</div>
-      <div class="card-desc">按月份对比两个年份的收入金额，数据源 CR.json</div>
+      <div class="card-desc">按月份对比两个系列的收入金额，数据源 CR.json</div>
       <span class="card-badge">查看详情 →</span>
     </a>
     <a class="card" href="#section-tsi">
       <span class="card-icon">🧾</span>
       <div class="card-title">结算对比柱状图</div>
-      <div class="card-desc">按月份对比两个年份的结算金额，数据源 TSI.json</div>
+      <div class="card-desc">按月份对比两个系列的结算金额，数据源 TSI.json</div>
       <span class="card-badge" style="background:#fff4e6;color:#f39c12;">查看详情 →</span>
     </a>
     <a class="card" href="#section-rfc-bar">
       <span class="card-icon">📊</span>
       <div class="card-title">收入分类条形图</div>
-      <div class="card-desc">两个年份对比，按年份 B 金额降序，数据源 CR.json</div>
+      <div class="card-desc">两个系列对比，按系列 B 金额降序，数据源 CR.json</div>
       <span class="card-badge" style="background:#e8f4ff;color:#2d7be8;">查看详情 →</span>
     </a>
     <a class="card" href="#section-tsi-bar">
       <span class="card-icon">📋</span>
       <div class="card-title">结算分类条形图</div>
-      <div class="card-desc">两个年份对比，按年份 B 金额降序，数据源 TSI.json</div>
+      <div class="card-desc">两个系列对比，按系列 B 金额降序，数据源 TSI.json</div>
       <span class="card-badge" style="background:#e8f8ef;color:#27ae60;">查看详情 →</span>
     </a>
     <a class="card" href="#section-rce">
@@ -167,75 +182,127 @@
     </a>
   </div>
 
-  <!-- 收入对比柱状图 -->
+  <!-- ========== 收入对比柱状图 ========== -->
   <section id="section-rfc" class="detail-section">
     <h2>💰 收入对比柱状图</h2>
-    <p class="section-hint">数据源：CR.json（前端收入）· 选择两个年份和筛选条件，对比各月份收入金额</p>
+    <p class="section-hint">数据源：CR.json（前端收入）· 系列1与系列2的公司/年/月各自独立，收入分类/课程类名/课程分类共用</p>
+
     <div class="filters" id="filters-rfc">
-      <div class="filter-item"><label>年份 A（系列1）</label><select id="rfc-yearA"></select></div>
-      <div class="filter-item"><label>年份 B（系列2）</label><select id="rfc-yearB"></select></div>
-      <div class="filter-item"><label>公司</label><select id="rfc-company"><option value="">全部</option></select></div>
-      <div class="filter-item"><label>课程类名</label><select id="rfc-courseType"><option value="">全部</option></select></div>
-      <div class="filter-item"><label>课程分类</label><select id="rfc-courseCat"><option value="">全部</option></select></div>
-      <div class="filter-item"><label>收入分类</label><select id="rfc-incomeCat"><option value="">全部</option></select></div>
-      <div class="filter-item"><label>月份范围</label><select id="rfc-month"><option value="all">全部月份</option></select></div>
+      <div class="filter-group">
+        <div class="group-title">系列1（A）· 独立筛选</div>
+        <div class="filter-item"><label>公司</label><select id="rfc-a-company"><option value="">全部</option></select></div>
+        <div class="filter-item"><label>年</label><select id="rfc-a-year"><option value="">全部</option></select></div>
+        <div class="filter-item"><label>月</label><select id="rfc-a-month"><option value="">全部</option></select></div>
+      </div>
+      <div class="filter-group">
+        <div class="group-title">系列2（B）· 独立筛选</div>
+        <div class="filter-item"><label>公司</label><select id="rfc-b-company"><option value="">全部</option></select></div>
+        <div class="filter-item"><label>年</label><select id="rfc-b-year"><option value="">全部</option></select></div>
+        <div class="filter-item"><label>月</label><select id="rfc-b-month"><option value="">全部</option></select></div>
+      </div>
+      <div class="filter-group" style="border-color:#c8d6e5;">
+        <div class="group-title">共用筛选</div>
+        <div class="filter-item"><label>收入分类</label><select id="rfc-shared-incomeCat"><option value="">全部</option></select></div>
+        <div class="filter-item"><label>课程类名</label><select id="rfc-shared-courseType"><option value="">全部</option></select></div>
+        <div class="filter-item"><label>课程分类</label><select id="rfc-shared-courseCat"><option value="">全部</option></select></div>
+      </div>
       <button class="reset-btn" id="rfc-resetBtn">重置筛选</button>
     </div>
+
     <div id="chart-rfc" class="chart-box"></div>
     <div id="status-rfc" class="loading">正在加载 CR.json…</div>
   </section>
 
-  <!-- 结算对比柱状图 -->
+  <!-- ========== 结算对比柱状图 ========== -->
   <section id="section-tsi" class="detail-section">
     <h2>🧾 结算对比柱状图</h2>
-    <p class="section-hint">数据源：TSI.json（终端结算）· 选择两个年份和筛选条件，对比各月份结算金额</p>
+    <p class="section-hint">数据源：TSI.json（终端结算）· 系列1与系列2的公司/年/月各自独立，收入分类/课程类名/课程分类共用</p>
+
     <div class="filters" id="filters-tsi">
-      <div class="filter-item"><label>年份 A（系列1）</label><select id="tsi-yearA"></select></div>
-      <div class="filter-item"><label>年份 B（系列2）</label><select id="tsi-yearB"></select></div>
-      <div class="filter-item"><label>公司</label><select id="tsi-company"><option value="">全部</option></select></div>
-      <div class="filter-item"><label>课程类名</label><select id="tsi-courseType"><option value="">全部</option></select></div>
-      <div class="filter-item"><label>课程分类</label><select id="tsi-courseCat"><option value="">全部</option></select></div>
-      <div class="filter-item"><label>收入分类</label><select id="tsi-incomeCat"><option value="">全部</option></select></div>
-      <div class="filter-item"><label>月份范围</label><select id="tsi-month"><option value="all">全部月份</option></select></div>
+      <div class="filter-group">
+        <div class="group-title">系列1（A）· 独立筛选</div>
+        <div class="filter-item"><label>公司</label><select id="tsi-a-company"><option value="">全部</option></select></div>
+        <div class="filter-item"><label>年</label><select id="tsi-a-year"><option value="">全部</option></select></div>
+        <div class="filter-item"><label>月</label><select id="tsi-a-month"><option value="">全部</option></select></div>
+      </div>
+      <div class="filter-group">
+        <div class="group-title">系列2（B）· 独立筛选</div>
+        <div class="filter-item"><label>公司</label><select id="tsi-b-company"><option value="">全部</option></select></div>
+        <div class="filter-item"><label>年</label><select id="tsi-b-year"><option value="">全部</option></select></div>
+        <div class="filter-item"><label>月</label><select id="tsi-b-month"><option value="">全部</option></select></div>
+      </div>
+      <div class="filter-group" style="border-color:#c8d6e5;">
+        <div class="group-title">共用筛选</div>
+        <div class="filter-item"><label>收入分类</label><select id="tsi-shared-incomeCat"><option value="">全部</option></select></div>
+        <div class="filter-item"><label>课程类名</label><select id="tsi-shared-courseType"><option value="">全部</option></select></div>
+        <div class="filter-item"><label>课程分类</label><select id="tsi-shared-courseCat"><option value="">全部</option></select></div>
+      </div>
       <button class="reset-btn" id="tsi-resetBtn">重置筛选</button>
     </div>
+
     <div id="chart-tsi" class="chart-box"></div>
     <div id="status-tsi" class="loading">正在加载 TSI.json…</div>
   </section>
 
-  <!-- 收入分类条形图 -->
+  <!-- ========== 收入分类条形图 ========== -->
   <section id="section-rfc-bar" class="detail-section">
     <h2>📊 收入分类条形图</h2>
-    <p class="section-hint">数据源：CR.json（前端收入）· 两个年份对比，按年份 B 金额降序</p>
+    <p class="section-hint">数据源：CR.json（前端收入）· 两个系列对比，按系列 B 金额降序，公司/年/月独立，收入分类共用</p>
+
     <div class="filters" id="filters-rfc-bar">
-      <div class="filter-item"><label>年份 A（系列1）</label><select id="rfcbar-yearA"></select></div>
-      <div class="filter-item"><label>年份 B（系列2 · 排序依据）</label><select id="rfcbar-yearB"></select></div>
-      <div class="filter-item"><label>公司</label><select id="rfcbar-company"><option value="">全部</option></select></div>
-      <div class="filter-item"><label>月</label><select id="rfcbar-month"><option value="">全部</option></select></div>
-      <div class="filter-item"><label>收入分类</label><select id="rfcbar-incomeCat"><option value="">全部</option></select></div>
+      <div class="filter-group">
+        <div class="group-title">系列1（A）· 独立筛选</div>
+        <div class="filter-item"><label>公司</label><select id="rfcbar-a-company"><option value="">全部</option></select></div>
+        <div class="filter-item"><label>年</label><select id="rfcbar-a-year"><option value="">全部</option></select></div>
+        <div class="filter-item"><label>月</label><select id="rfcbar-a-month"><option value="">全部</option></select></div>
+      </div>
+      <div class="filter-group">
+        <div class="group-title">系列2（B）· 独立筛选（排序依据）</div>
+        <div class="filter-item"><label>公司</label><select id="rfcbar-b-company"><option value="">全部</option></select></div>
+        <div class="filter-item"><label>年</label><select id="rfcbar-b-year"><option value="">全部</option></select></div>
+        <div class="filter-item"><label>月</label><select id="rfcbar-b-month"><option value="">全部</option></select></div>
+      </div>
+      <div class="filter-group" style="border-color:#c8d6e5;">
+        <div class="group-title">共用筛选</div>
+        <div class="filter-item"><label>收入分类</label><select id="rfcbar-shared-incomeCat"><option value="">全部</option></select></div>
+      </div>
       <button class="reset-btn" id="rfcbar-resetBtn">重置筛选</button>
     </div>
+
     <div id="chart-rfc-bar" class="chart-box"></div>
     <div id="status-rfc-bar" class="loading">正在加载 CR.json…</div>
   </section>
 
-  <!-- 结算分类条形图 -->
+  <!-- ========== 结算分类条形图 ========== -->
   <section id="section-tsi-bar" class="detail-section">
     <h2>📋 结算分类条形图</h2>
-    <p class="section-hint">数据源：TSI.json（终端结算）· 两个年份对比，按年份 B 金额降序</p>
+    <p class="section-hint">数据源：TSI.json（终端结算）· 两个系列对比，按系列 B 金额降序，公司/年/月独立，收入分类共用</p>
+
     <div class="filters" id="filters-tsi-bar">
-      <div class="filter-item"><label>年份 A（系列1）</label><select id="tsibar-yearA"></select></div>
-      <div class="filter-item"><label>年份 B（系列2 · 排序依据）</label><select id="tsibar-yearB"></select></div>
-      <div class="filter-item"><label>公司</label><select id="tsibar-company"><option value="">全部</option></select></div>
-      <div class="filter-item"><label>月</label><select id="tsibar-month"><option value="">全部</option></select></div>
-      <div class="filter-item"><label>收入分类</label><select id="tsibar-incomeCat"><option value="">全部</option></select></div>
+      <div class="filter-group">
+        <div class="group-title">系列1（A）· 独立筛选</div>
+        <div class="filter-item"><label>公司</label><select id="tsibar-a-company"><option value="">全部</option></select></div>
+        <div class="filter-item"><label>年</label><select id="tsibar-a-year"><option value="">全部</option></select></div>
+        <div class="filter-item"><label>月</label><select id="tsibar-a-month"><option value="">全部</option></select></div>
+      </div>
+      <div class="filter-group">
+        <div class="group-title">系列2（B）· 独立筛选（排序依据）</div>
+        <div class="filter-item"><label>公司</label><select id="tsibar-b-company"><option value="">全部</option></select></div>
+        <div class="filter-item"><label>年</label><select id="tsibar-b-year"><option value="">全部</option></select></div>
+        <div class="filter-item"><label>月</label><select id="tsibar-b-month"><option value="">全部</option></select></div>
+      </div>
+      <div class="filter-group" style="border-color:#c8d6e5;">
+        <div class="group-title">共用筛选</div>
+        <div class="filter-item"><label>收入分类</label><select id="tsibar-shared-incomeCat"><option value="">全部</option></select></div>
+      </div>
       <button class="reset-btn" id="tsibar-resetBtn">重置筛选</button>
     </div>
+
     <div id="chart-tsi-bar" class="chart-box"></div>
     <div id="status-tsi-bar" class="loading">正在加载 TSI.json…</div>
   </section>
 
-  <!-- 收入/费用/利润组合图 -->
+  <!-- ========== 收入/费用/利润组合图 ========== -->
   <section id="section-rce" class="detail-section">
     <h2>📈 收入/费用/利润组合图</h2>
     <p class="section-hint">数据源：RCEDetail.json · A 公司左半区 12 个月，B 公司右半区 12 个月，嵌套柱 + 各自利润率折线</p>
@@ -252,7 +319,7 @@
     <div id="status-rce" class="loading">正在加载 RCEDetail.json…</div>
   </section>
 
-  <!-- ========== 成本费用分项目同心双环饼图（RCEDetail.json） ========== -->
+  <!-- ========== 成本费用双环饼图 ========== -->
   <section id="section-rce-pie" class="detail-section">
     <h2>🍩 成本费用分项目双环饼图</h2>
     <p class="section-hint">数据源：RCEDetail.json · 筛选“科目属性”=“费用”，按“科目名称”金额取前 N 项，其余归为“其他”</p>
@@ -296,7 +363,7 @@
     <div id="status-rce-pie" class="loading">正在加载 RCEDetail.json…</div>
   </section>
 
-  <!-- ========== 课消分析组合图（TSI.json） ========== -->
+  <!-- ========== 课消分析组合图 ========== -->
   <section id="section-tsi-nest" class="detail-section">
     <h2>📐 课消分析组合图</h2>
     <p class="section-hint">数据源：TSI.json · 大柱=学费金额合计，小柱=学费课时合计，折线=人均单节课消（学费合计/课时合计）</p>
@@ -362,6 +429,17 @@
       selectEl.appendChild(opt);
     });
   }
+  function fillMonthSelect(selectEl) {
+    const firstOption = selectEl.querySelector('option');
+    selectEl.innerHTML = '';
+    if (firstOption) selectEl.appendChild(firstOption);
+    for (let m = 1; m <= 12; m++) {
+      const opt = document.createElement('option');
+      opt.value = m;
+      opt.textContent = m + '月';
+      selectEl.appendChild(opt);
+    }
+  }
   function extractRows(data) {
     if (Array.isArray(data)) {
       if (data.length > 0 && typeof data[0] === 'object' && data[0] !== null && '年' in data[0]) return data;
@@ -376,73 +454,86 @@
   }
 
   /* ============================================================
-     1. 对比柱状图（月份对比两个年份）
+     1. 对比柱状图（月份对比两个系列，公司/年/月独立，共用分类筛选）
      ============================================================ */
   function createCompareController(config) {
     const {
-      chartId, statusId, yearAId, yearBId, companyId, courseTypeId,
-      courseCatId, incomeCatId, monthId, resetBtnId, jsonUrl, colorPair
+      chartId, statusId,
+      aCompanyId, aYearId, aMonthId,
+      bCompanyId, bYearId, bMonthId,
+      sharedIncomeCatId, sharedCourseTypeId, sharedCourseCatId,
+      resetBtnId, jsonUrl, colorPair
     } = config;
+
     const chartDom = document.getElementById(chartId);
     const myChart = echarts.init(chartDom);
     const statusDiv = document.getElementById(statusId);
-    const yearASelect = document.getElementById(yearAId);
-    const yearBSelect = document.getElementById(yearBId);
-    const companySelect = document.getElementById(companyId);
-    const courseTypeSelect = document.getElementById(courseTypeId);
-    const courseCatSelect = document.getElementById(courseCatId);
-    const incomeCatSelect = document.getElementById(incomeCatId);
-    const monthSelect = document.getElementById(monthId);
-    const resetBtn = document.getElementById(resetBtnId);
-    let rawData = [];
-    let allYears = [];
 
-    function matchFilters(row) {
-      if (companySelect.value && row['公司'] !== companySelect.value) return false;
-      if (courseTypeSelect.value && row['课程类名'] !== courseTypeSelect.value) return false;
-      if (courseCatSelect.value && row['课程分类'] !== courseCatSelect.value) return false;
-      if (incomeCatSelect.value && row['收入分类'] !== incomeCatSelect.value) return false;
+    const aCompany = document.getElementById(aCompanyId);
+    const aYear = document.getElementById(aYearId);
+    const aMonth = document.getElementById(aMonthId);
+    const bCompany = document.getElementById(bCompanyId);
+    const bYear = document.getElementById(bYearId);
+    const bMonth = document.getElementById(bMonthId);
+    const sharedIncomeCat = document.getElementById(sharedIncomeCatId);
+    const sharedCourseType = document.getElementById(sharedCourseTypeId);
+    const sharedCourseCat = document.getElementById(sharedCourseCatId);
+    const resetBtn = document.getElementById(resetBtnId);
+
+    let rawData = [];
+
+    // 共用筛选（不含公司/年/月）
+    function matchShared(row) {
+      if (sharedIncomeCat.value && row['收入分类'] !== sharedIncomeCat.value) return false;
+      if (sharedCourseType.value && row['课程类名'] !== sharedCourseType.value) return false;
+      if (sharedCourseCat.value && row['课程分类'] !== sharedCourseCat.value) return false;
       return true;
     }
-    function aggregateByMonth(year, monthRange) {
+
+    // 系列独立筛选
+    function matchSeries(row, companyVal, yearVal, monthVal) {
+      if (companyVal && row['公司'] !== companyVal) return false;
+      if (yearVal && String(row['年']) !== String(yearVal)) return false;
+      if (monthVal && String(row['月']) !== String(monthVal)) return false;
+      return true;
+    }
+
+    function aggregateByMonth(companyVal, yearVal, monthVal) {
       const sums = new Array(12).fill(0);
       rawData.forEach(row => {
-        if (String(row['年']) !== String(year)) return;
-        if (!matchFilters(row)) return;
-        if (monthRange !== 'all' && String(row['月']) !== String(monthRange)) return;
+        if (!matchShared(row)) return;
+        if (!matchSeries(row, companyVal, yearVal, monthVal)) return;
         const m = Number(row['月']);
         if (m >= 1 && m <= 12) sums[m - 1] += Number(row['金额']) || 0;
       });
       return sums;
     }
-    function buildXAxis() {
-      if (monthSelect.value !== 'all') return [`${monthSelect.value}月`];
-      return ['1月','2月','3月','4月','5月','6月','7月','8月','9月','10月','11月','12月'];
-    }
+
     function refreshChart() {
-      const yearA = yearASelect.value;
-      const yearB = yearBSelect.value;
-      if (!yearA || !yearB) return;
-      const monthVal = monthSelect.value;
-      const xAxisData = buildXAxis();
-      let seriesAData, seriesBData;
-      if (monthVal === 'all') {
-        seriesAData = aggregateByMonth(yearA, 'all');
-        seriesBData = aggregateByMonth(yearB, 'all');
-      } else {
-        const a = aggregateByMonth(yearA, monthVal);
-        const b = aggregateByMonth(yearB, monthVal);
-        const idx = Number(monthVal) - 1;
-        seriesAData = [a[idx]];
-        seriesBData = [b[idx]];
-      }
-      const summaryParts = [];
-      if (companySelect.value) summaryParts.push(companySelect.value);
-      if (courseTypeSelect.value) summaryParts.push(courseTypeSelect.value);
-      if (courseCatSelect.value) summaryParts.push(courseCatSelect.value);
-      if (incomeCatSelect.value) summaryParts.push(incomeCatSelect.value);
-      if (monthSelect.value !== 'all') summaryParts.push(monthSelect.value + '月');
-      const summaryText = summaryParts.length ? summaryParts.join(' · ') : '全部数据';
+      const xAxisData = ['1月','2月','3月','4月','5月','6月','7月','8月','9月','10月','11月','12月'];
+
+      const seriesAData = aggregateByMonth(aCompany.value, aYear.value, aMonth.value);
+      const seriesBData = aggregateByMonth(bCompany.value, bYear.value, bMonth.value);
+
+      // 系列名称：公司+年（有值则显示）
+      const aLabelParts = [];
+      if (aCompany.value) aLabelParts.push(aCompany.value);
+      if (aYear.value) aLabelParts.push(aYear.value + '年');
+      if (aMonth.value) aLabelParts.push(aMonth.value + '月');
+      const aLabel = aLabelParts.length ? aLabelParts.join('·') : '系列 A';
+
+      const bLabelParts = [];
+      if (bCompany.value) bLabelParts.push(bCompany.value);
+      if (bYear.value) bLabelParts.push(bYear.value + '年');
+      if (bMonth.value) bLabelParts.push(bMonth.value + '月');
+      const bLabel = bLabelParts.length ? bLabelParts.join('·') : '系列 B';
+
+      const sharedParts = [];
+      if (sharedIncomeCat.value) sharedParts.push(sharedIncomeCat.value);
+      if (sharedCourseType.value) sharedParts.push(sharedCourseType.value);
+      if (sharedCourseCat.value) sharedParts.push(sharedCourseCat.value);
+      const sharedText = sharedParts.length ? sharedParts.join(' · ') : '全部分类';
+
       const option = {
         tooltip: {
           trigger: 'axis', axisPointer: { type: 'shadow' }, renderMode: 'richText',
@@ -455,55 +546,87 @@
           textStyle: { color: '#1e2b3c', fontSize: 13 }, padding: [10, 14],
           extraCssText: 'box-shadow: 0 6px 18px rgba(0,0,0,0.1); border-radius: 12px;'
         },
-        legend: { data: [`${yearA}年`, `${yearB}年`], top: 0, right: 0, itemWidth: 14, itemHeight: 10, textStyle: { fontSize: 13, color: '#2c3e50' } },
+        legend: {
+          data: [aLabel, bLabel],
+          top: 0, right: 0, itemWidth: 14, itemHeight: 10,
+          textStyle: { fontSize: 13, color: '#2c3e50' }
+        },
         grid: { left: '3%', right: '4%', bottom: '3%', top: 60, containLabel: true },
-        xAxis: { type: 'category', data: xAxisData, axisTick: { alignWithLabel: true }, axisLabel: { fontSize: 12, color: '#4a5b6b' }, axisLine: { lineStyle: { color: '#d0d9e2' } } },
-        yAxis: { type: 'value', name: '金额', nameTextStyle: { fontSize: 12, color: '#7a8b9c', padding: [0, 0, 0, 10] }, axisLabel: { fontSize: 12, color: '#4a5b6b', formatter: v => fmtNum(v) }, splitLine: { lineStyle: { color: '#eef2f7', type: 'dashed' } } },
+        xAxis: {
+          type: 'category', data: xAxisData,
+          axisTick: { alignWithLabel: true },
+          axisLabel: { fontSize: 12, color: '#4a5b6b' },
+          axisLine: { lineStyle: { color: '#d0d9e2' } }
+        },
+        yAxis: {
+          type: 'value', name: '金额',
+          nameTextStyle: { fontSize: 12, color: '#7a8b9c', padding: [0, 0, 0, 10] },
+          axisLabel: { fontSize: 12, color: '#4a5b6b', formatter: v => fmtNum(v) },
+          splitLine: { lineStyle: { color: '#eef2f7', type: 'dashed' } }
+        },
         series: [
-          { name: `${yearA}年`, type: 'bar', data: seriesAData, itemStyle: { color: colorPair[0], borderRadius: [4, 4, 0, 0] }, barGap: '20%', barWidth: '32%', label: { show: true, position: 'top', fontSize: 10, color: '#4a5b6b', formatter: p => (p.value > 0 ? fmtNum(p.value) : '') } },
-          { name: `${yearB}年`, type: 'bar', data: seriesBData, itemStyle: { color: colorPair[1], borderRadius: [4, 4, 0, 0] }, barWidth: '32%', label: { show: true, position: 'top', fontSize: 10, color: '#4a5b6b', formatter: p => (p.value > 0 ? fmtNum(p.value) : '') } }
+          {
+            name: aLabel, type: 'bar', data: seriesAData,
+            itemStyle: { color: colorPair[0], borderRadius: [4, 4, 0, 0] },
+            barGap: '20%', barWidth: '32%',
+            label: { show: true, position: 'top', fontSize: 10, color: '#4a5b6b', formatter: p => (p.value > 0 ? fmtNum(p.value) : '') }
+          },
+          {
+            name: bLabel, type: 'bar', data: seriesBData,
+            itemStyle: { color: colorPair[1], borderRadius: [4, 4, 0, 0] },
+            barWidth: '32%',
+            label: { show: true, position: 'top', fontSize: 10, color: '#4a5b6b', formatter: p => (p.value > 0 ? fmtNum(p.value) : '') }
+          }
         ],
-        graphic: [{ type: 'text', left: 0, top: 0, style: { text: summaryText, fontSize: 13, fontWeight: 500, fill: '#7a8b9c' } }]
+        graphic: [{ type: 'text', left: 0, top: 0, style: { text: '共用：' + sharedText, fontSize: 12, fontWeight: 500, fill: '#9aa9b8' } }]
       };
+
       myChart.setOption(option, true);
     }
+
     function initFilters() {
-      if (allYears.length === 0) {
-        yearASelect.innerHTML = '<option value="">无年份数据</option>';
-        yearBSelect.innerHTML = '<option value="">无年份数据</option>';
-        yearASelect.disabled = true; yearBSelect.disabled = true; return;
+      fillSelect(aCompany, uniqSorted(rawData, '公司'));
+      fillSelect(bCompany, uniqSorted(rawData, '公司'));
+      fillSelect(aYear, uniqSorted(rawData, '年'));
+      fillSelect(bYear, uniqSorted(rawData, '年'));
+      fillMonthSelect(aMonth);
+      fillMonthSelect(bMonth);
+
+      fillSelect(sharedIncomeCat, uniqSorted(rawData, '收入分类'));
+      fillSelect(sharedCourseType, uniqSorted(rawData, '课程类名'));
+      fillSelect(sharedCourseCat, uniqSorted(rawData, '课程分类'));
+
+      // 默认系列 B 的年份比 A 晚一年（如果有两个年份）
+      const years = uniqSorted(rawData, '年');
+      if (years.length >= 2) {
+        aYear.value = years[0];
+        bYear.value = years[1];
+      } else if (years.length === 1) {
+        aYear.value = years[0];
+        bYear.value = years[0];
       }
-      yearASelect.innerHTML = ''; yearBSelect.innerHTML = '';
-      allYears.forEach(y => {
-        const optA = document.createElement('option'); optA.value = y; optA.textContent = y; yearASelect.appendChild(optA);
-        const optB = document.createElement('option'); optB.value = y; optB.textContent = y; yearBSelect.appendChild(optB);
-      });
-      yearASelect.value = allYears[0];
-      if (allYears.length >= 2) yearBSelect.value = allYears[1];
-      else { yearBSelect.value = allYears[0]; yearBSelect.disabled = true; }
-      fillSelect(companySelect, uniqSorted(rawData, '公司'));
-      fillSelect(courseTypeSelect, uniqSorted(rawData, '课程类名'));
-      fillSelect(courseCatSelect, uniqSorted(rawData, '课程分类'));
-      fillSelect(incomeCatSelect, uniqSorted(rawData, '收入分类'));
-      monthSelect.innerHTML = '<option value="all">全部月份</option>';
-      for (let m = 1; m <= 12; m++) { const opt = document.createElement('option'); opt.value = m; opt.textContent = m + '月'; monthSelect.appendChild(opt); }
+
       resetBtn.addEventListener('click', () => {
-        yearASelect.value = allYears[0];
-        yearBSelect.value = allYears.length >= 2 ? allYears[1] : allYears[0];
-        companySelect.value = ''; courseTypeSelect.value = ''; courseCatSelect.value = ''; incomeCatSelect.value = ''; monthSelect.value = 'all';
+        aCompany.value = ''; aYear.value = years[0] || ''; aMonth.value = '';
+        bCompany.value = ''; bYear.value = years[1] || years[0] || ''; bMonth.value = '';
+        sharedIncomeCat.value = ''; sharedCourseType.value = ''; sharedCourseCat.value = '';
         refreshChart();
       });
-      [yearASelect, yearBSelect, companySelect, courseTypeSelect, courseCatSelect, incomeCatSelect, monthSelect].forEach(el => el.addEventListener('change', refreshChart));
+
+      [aCompany, aYear, aMonth, bCompany, bYear, bMonth,
+       sharedIncomeCat, sharedCourseType, sharedCourseCat].forEach(el => {
+        el.addEventListener('change', refreshChart);
+      });
+
       refreshChart();
     }
+
     fetch(jsonUrl)
       .then(res => { if (!res.ok) throw new Error(`HTTP ${res.status} - 无法加载 ${jsonUrl}`); return res.json(); })
       .then(data => {
         const rows = extractRows(data);
         if (!rows || rows.length === 0) throw new Error(`未能从 ${jsonUrl} 中解析出包含"年"字段的数据数组`);
         rawData = rows;
-        allYears = uniqSorted(rawData, '年');
-        if (allYears.length === 0) throw new Error(`数据中未找到有效的"年"字段`);
         statusDiv.style.display = 'none';
         initFilters();
       })
@@ -512,69 +635,93 @@
         statusDiv.innerHTML = `❌ 数据加载失败：${err.message}<br><br><span style="font-size:13px;color:#8899aa;">请确认 ${jsonUrl} 与 HTML 文件在同一目录，且字段名一致。</span>`;
         console.error(err);
       });
+
     window.addEventListener('resize', () => myChart.resize());
   }
 
   /* ============================================================
-     2. 分类对比条形图（两个年份系列，按年份 B 降序）
+     2. 分类对比条形图（两个系列，按系列 B 降序，公司/年/月独立）
      ============================================================ */
   function createRankCompareBarController(config) {
     const {
-      chartId, statusId, yearAId, yearBId, companyId, monthId, incomeCatId, resetBtnId,
+      chartId, statusId,
+      aCompanyId, aYearId, aMonthId,
+      bCompanyId, bYearId, bMonthId,
+      sharedIncomeCatId, resetBtnId,
       jsonUrl, colorPair
     } = config;
+
     const chartDom = document.getElementById(chartId);
     const myChart = echarts.init(chartDom);
     const statusDiv = document.getElementById(statusId);
-    const yearASelect = document.getElementById(yearAId);
-    const yearBSelect = document.getElementById(yearBId);
-    const companySelect = document.getElementById(companyId);
-    const monthSelect = document.getElementById(monthId);
-    const incomeCatSelect = document.getElementById(incomeCatId);
-    const resetBtn = document.getElementById(resetBtnId);
-    let rawData = [];
-    let allYears = [];
 
-    function matchFilters(row) {
-      if (companySelect.value && row['公司'] !== companySelect.value) return false;
-      if (monthSelect.value && String(row['月']) !== String(monthSelect.value)) return false;
-      if (incomeCatSelect.value && row['收入分类'] !== incomeCatSelect.value) return false;
+    const aCompany = document.getElementById(aCompanyId);
+    const aYear = document.getElementById(aYearId);
+    const aMonth = document.getElementById(aMonthId);
+    const bCompany = document.getElementById(bCompanyId);
+    const bYear = document.getElementById(bYearId);
+    const bMonth = document.getElementById(bMonthId);
+    const sharedIncomeCat = document.getElementById(sharedIncomeCatId);
+    const resetBtn = document.getElementById(resetBtnId);
+
+    let rawData = [];
+
+    function matchShared(row) {
+      if (sharedIncomeCat.value && row['收入分类'] !== sharedIncomeCat.value) return false;
       return true;
     }
-    function aggregateByCourseCat(yearA, yearB) {
+    function matchSeries(row, companyVal, yearVal, monthVal) {
+      if (companyVal && row['公司'] !== companyVal) return false;
+      if (yearVal && String(row['年']) !== String(yearVal)) return false;
+      if (monthVal && String(row['月']) !== String(monthVal)) return false;
+      return true;
+    }
+
+    // 按课程分类聚合：分别计算两个系列的金额
+    function aggregateByCourseCat() {
       const map = new Map();
       rawData.forEach(row => {
-        if (!matchFilters(row)) return;
+        if (!matchShared(row)) return;
         const cat = row['课程分类'] || '未分类';
         const val = Number(row['金额']) || 0;
-        if (!map.has(cat)) map.set(cat, { yearA: 0, yearB: 0 });
+        if (!map.has(cat)) map.set(cat, { a: 0, b: 0 });
         const entry = map.get(cat);
-        if (String(row['年']) === String(yearA)) entry.yearA += val;
-        if (String(row['年']) === String(yearB)) entry.yearB += val;
+        if (matchSeries(row, aCompany.value, aYear.value, aMonth.value)) entry.a += val;
+        if (matchSeries(row, bCompany.value, bYear.value, bMonth.value)) entry.b += val;
       });
       return map;
     }
+
     function refreshChart() {
-      const yearA = yearASelect.value;
-      const yearB = yearBSelect.value;
-      if (!yearA || !yearB) return;
-      const map = aggregateByCourseCat(yearA, yearB);
-      let arr = Array.from(map.entries()).map(([name, v]) => ({ name, yearA: v.yearA, yearB: v.yearB }));
-      arr.sort((a, b) => b.yearB - a.yearB);
+      const map = aggregateByCourseCat();
+      let arr = Array.from(map.entries()).map(([name, v]) => ({ name, a: v.a, b: v.b }));
+      arr.sort((x, y) => y.b - x.b);
+
       if (arr.length === 0) {
         myChart.clear();
         myChart.setOption({ title: { text: '当前筛选条件下无数据', left: 'center', top: 'center', textStyle: { color: '#9aa9b8', fontSize: 14, fontWeight: 400 } } }, true);
         return;
       }
+
       const reversed = [...arr].reverse();
       const categories = reversed.map(d => d.name);
-      const seriesAData = reversed.map(d => d.yearA);
-      const seriesBData = reversed.map(d => d.yearB);
-      const summaryParts = [];
-      if (companySelect.value) summaryParts.push(companySelect.value);
-      if (monthSelect.value) summaryParts.push(monthSelect.value + '月');
-      if (incomeCatSelect.value) summaryParts.push(incomeCatSelect.value);
-      const summaryText = summaryParts.length ? summaryParts.join(' · ') : '全部数据';
+      const aData = reversed.map(d => d.a);
+      const bData = reversed.map(d => d.b);
+
+      const aLabelParts = [];
+      if (aCompany.value) aLabelParts.push(aCompany.value);
+      if (aYear.value) aLabelParts.push(aYear.value + '年');
+      if (aMonth.value) aLabelParts.push(aMonth.value + '月');
+      const aLabel = aLabelParts.length ? aLabelParts.join('·') : '系列 A';
+
+      const bLabelParts = [];
+      if (bCompany.value) bLabelParts.push(bCompany.value);
+      if (bYear.value) bLabelParts.push(bYear.value + '年');
+      if (bMonth.value) bLabelParts.push(bMonth.value + '月');
+      const bLabel = bLabelParts.length ? bLabelParts.join('·') : '系列 B';
+
+      const sharedText = sharedIncomeCat.value ? sharedIncomeCat.value : '全部收入分类';
+
       const option = {
         tooltip: {
           trigger: 'axis', axisPointer: { type: 'shadow' }, renderMode: 'richText',
@@ -587,51 +734,82 @@
           textStyle: { color: '#1e2b3c', fontSize: 13 }, padding: [10, 14],
           extraCssText: 'box-shadow: 0 6px 18px rgba(0,0,0,0.1); border-radius: 12px;'
         },
-        legend: { data: [`${yearA}年`, `${yearB}年`], top: 0, right: 0, itemWidth: 14, itemHeight: 10, textStyle: { fontSize: 13, color: '#2c3e50' } },
+        legend: {
+          data: [aLabel, bLabel],
+          top: 0, right: 0, itemWidth: 14, itemHeight: 10,
+          textStyle: { fontSize: 13, color: '#2c3e50' }
+        },
         grid: { left: '3%', right: '8%', bottom: '3%', top: 50, containLabel: true },
-        xAxis: { type: 'value', name: '金额', nameTextStyle: { fontSize: 12, color: '#7a8b9c', padding: [0, 0, 0, 10] }, axisLabel: { fontSize: 12, color: '#4a5b6b', formatter: v => fmtNum(v) }, splitLine: { lineStyle: { color: '#eef2f7', type: 'dashed' } } },
-        yAxis: { type: 'category', data: categories, axisTick: { show: false }, axisLabel: { fontSize: 12, color: '#4a5b6b' }, axisLine: { lineStyle: { color: '#d0d9e2' } } },
+        xAxis: {
+          type: 'value', name: '金额',
+          nameTextStyle: { fontSize: 12, color: '#7a8b9c', padding: [0, 0, 0, 10] },
+          axisLabel: { fontSize: 12, color: '#4a5b6b', formatter: v => fmtNum(v) },
+          splitLine: { lineStyle: { color: '#eef2f7', type: 'dashed' } }
+        },
+        yAxis: {
+          type: 'category', data: categories,
+          axisTick: { show: false },
+          axisLabel: { fontSize: 12, color: '#4a5b6b' },
+          axisLine: { lineStyle: { color: '#d0d9e2' } }
+        },
         series: [
-          { name: `${yearA}年`, type: 'bar', data: seriesAData, itemStyle: { color: colorPair[0], borderRadius: [0, 4, 4, 0] }, barGap: '20%', barWidth: '32%', label: { show: true, position: 'right', fontSize: 10, color: '#4a5b6b', formatter: p => (p.value > 0 ? fmtNum(p.value) : '') } },
-          { name: `${yearB}年`, type: 'bar', data: seriesBData, itemStyle: { color: colorPair[1], borderRadius: [0, 4, 4, 0] }, barWidth: '32%', label: { show: true, position: 'right', fontSize: 10, color: '#4a5b6b', formatter: p => (p.value > 0 ? fmtNum(p.value) : '') } }
+          {
+            name: aLabel, type: 'bar', data: aData,
+            itemStyle: { color: colorPair[0], borderRadius: [0, 4, 4, 0] },
+            barGap: '20%', barWidth: '32%',
+            label: { show: true, position: 'right', fontSize: 10, color: '#4a5b6b', formatter: p => (p.value > 0 ? fmtNum(p.value) : '') }
+          },
+          {
+            name: bLabel, type: 'bar', data: bData,
+            itemStyle: { color: colorPair[1], borderRadius: [0, 4, 4, 0] },
+            barWidth: '32%',
+            label: { show: true, position: 'right', fontSize: 10, color: '#4a5b6b', formatter: p => (p.value > 0 ? fmtNum(p.value) : '') }
+          }
         ],
-        graphic: [{ type: 'text', left: 0, top: 0, style: { text: summaryText, fontSize: 13, fontWeight: 500, fill: '#7a8b9c' } }]
+        graphic: [{ type: 'text', left: 0, top: 0, style: { text: '共用：' + sharedText, fontSize: 12, fontWeight: 500, fill: '#9aa9b8' } }]
       };
+
       myChart.setOption(option, true);
     }
+
     function initFilters() {
-      if (allYears.length === 0) {
-        yearASelect.innerHTML = '<option value="">无数据</option>'; yearBSelect.innerHTML = '<option value="">无数据</option>';
-        yearASelect.disabled = true; yearBSelect.disabled = true; return;
+      fillSelect(aCompany, uniqSorted(rawData, '公司'));
+      fillSelect(bCompany, uniqSorted(rawData, '公司'));
+      fillSelect(aYear, uniqSorted(rawData, '年'));
+      fillSelect(bYear, uniqSorted(rawData, '年'));
+      fillMonthSelect(aMonth);
+      fillMonthSelect(bMonth);
+      fillSelect(sharedIncomeCat, uniqSorted(rawData, '收入分类'));
+
+      const years = uniqSorted(rawData, '年');
+      if (years.length >= 2) {
+        aYear.value = years[0];
+        bYear.value = years[1];
+      } else if (years.length === 1) {
+        aYear.value = years[0];
+        bYear.value = years[0];
       }
-      yearASelect.innerHTML = ''; yearBSelect.innerHTML = '';
-      allYears.forEach(y => {
-        const optA = document.createElement('option'); optA.value = y; optA.textContent = y; yearASelect.appendChild(optA);
-        const optB = document.createElement('option'); optB.value = y; optB.textContent = y; yearBSelect.appendChild(optB);
-      });
-      yearASelect.value = allYears[0];
-      if (allYears.length >= 2) yearBSelect.value = allYears[1];
-      else { yearBSelect.value = allYears[0]; yearBSelect.disabled = true; }
-      fillSelect(companySelect, uniqSorted(rawData, '公司'));
-      fillSelect(incomeCatSelect, uniqSorted(rawData, '收入分类'));
-      monthSelect.innerHTML = '<option value="">全部</option>';
-      for (let m = 1; m <= 12; m++) { const opt = document.createElement('option'); opt.value = m; opt.textContent = m + '月'; monthSelect.appendChild(opt); }
+
       resetBtn.addEventListener('click', () => {
-        yearASelect.value = allYears[0];
-        yearBSelect.value = allYears.length >= 2 ? allYears[1] : allYears[0];
-        companySelect.value = ''; monthSelect.value = ''; incomeCatSelect.value = '';
+        aCompany.value = ''; aYear.value = years[0] || ''; aMonth.value = '';
+        bCompany.value = ''; bYear.value = years[1] || years[0] || ''; bMonth.value = '';
+        sharedIncomeCat.value = '';
         refreshChart();
       });
-      [yearASelect, yearBSelect, companySelect, monthSelect, incomeCatSelect].forEach(el => el.addEventListener('change', refreshChart));
+
+      [aCompany, aYear, aMonth, bCompany, bYear, bMonth, sharedIncomeCat].forEach(el => {
+        el.addEventListener('change', refreshChart);
+      });
+
       refreshChart();
     }
+
     fetch(jsonUrl)
       .then(res => { if (!res.ok) throw new Error(`HTTP ${res.status} - 无法加载 ${jsonUrl}`); return res.json(); })
       .then(data => {
         const rows = extractRows(data);
         if (!rows || rows.length === 0) throw new Error(`未能从 ${jsonUrl} 中解析出包含"年"字段的数据数组`);
         rawData = rows;
-        allYears = uniqSorted(rawData, '年');
         statusDiv.style.display = 'none';
         initFilters();
       })
@@ -640,11 +818,12 @@
         statusDiv.innerHTML = `❌ 数据加载失败：${err.message}<br><br><span style="font-size:13px;color:#8899aa;">请确认 ${jsonUrl} 与 HTML 文件在同一目录。</span>`;
         console.error(err);
       });
+
     window.addEventListener('resize', () => myChart.resize());
   }
 
   /* ============================================================
-     3. 收入/费用/利润组合图
+     3. 收入/费用/利润组合图（保持不变）
      ============================================================ */
   function createRCEComboController(config) {
     const {
@@ -1200,7 +1379,7 @@
   }
 
   /* ============================================================
-     5. 课消分析组合图控制器（新增）
+     5. 课消分析组合图控制器
      ============================================================ */
   function createTuitionNestController(config) {
     const {
@@ -1232,7 +1411,6 @@
       return true;
     }
 
-    // 探测课时字段
     function getHours(row) {
       const candidates = ['课时', '课时数', '课时合计', '数量', '课次'];
       for (const key of candidates) {
@@ -1462,35 +1640,41 @@
      ============================================================ */
   createCompareController({
     chartId: 'chart-rfc', statusId: 'status-rfc',
-    yearAId: 'rfc-yearA', yearBId: 'rfc-yearB',
-    companyId: 'rfc-company', courseTypeId: 'rfc-courseType',
-    courseCatId: 'rfc-courseCat', incomeCatId: 'rfc-incomeCat',
-    monthId: 'rfc-month', resetBtnId: 'rfc-resetBtn',
+    aCompanyId: 'rfc-a-company', aYearId: 'rfc-a-year', aMonthId: 'rfc-a-month',
+    bCompanyId: 'rfc-b-company', bYearId: 'rfc-b-year', bMonthId: 'rfc-b-month',
+    sharedIncomeCatId: 'rfc-shared-incomeCat',
+    sharedCourseTypeId: 'rfc-shared-courseType',
+    sharedCourseCatId: 'rfc-shared-courseCat',
+    resetBtnId: 'rfc-resetBtn',
     jsonUrl: './CR.json', colorPair: ['#5470c6', '#fac858']
   });
 
   createCompareController({
     chartId: 'chart-tsi', statusId: 'status-tsi',
-    yearAId: 'tsi-yearA', yearBId: 'tsi-yearB',
-    companyId: 'tsi-company', courseTypeId: 'tsi-courseType',
-    courseCatId: 'tsi-courseCat', incomeCatId: 'tsi-incomeCat',
-    monthId: 'tsi-month', resetBtnId: 'tsi-resetBtn',
+    aCompanyId: 'tsi-a-company', aYearId: 'tsi-a-year', aMonthId: 'tsi-a-month',
+    bCompanyId: 'tsi-b-company', bYearId: 'tsi-b-year', bMonthId: 'tsi-b-month',
+    sharedIncomeCatId: 'tsi-shared-incomeCat',
+    sharedCourseTypeId: 'tsi-shared-courseType',
+    sharedCourseCatId: 'tsi-shared-courseCat',
+    resetBtnId: 'tsi-resetBtn',
     jsonUrl: './TSI.json', colorPair: ['#91cc75', '#ee6666']
   });
 
   createRankCompareBarController({
     chartId: 'chart-rfc-bar', statusId: 'status-rfc-bar',
-    yearAId: 'rfcbar-yearA', yearBId: 'rfcbar-yearB',
-    companyId: 'rfcbar-company', monthId: 'rfcbar-month',
-    incomeCatId: 'rfcbar-incomeCat', resetBtnId: 'rfcbar-resetBtn',
+    aCompanyId: 'rfcbar-a-company', aYearId: 'rfcbar-a-year', aMonthId: 'rfcbar-a-month',
+    bCompanyId: 'rfcbar-b-company', bYearId: 'rfcbar-b-year', bMonthId: 'rfcbar-b-month',
+    sharedIncomeCatId: 'rfcbar-shared-incomeCat',
+    resetBtnId: 'rfcbar-resetBtn',
     jsonUrl: './CR.json', colorPair: ['#5470c6', '#fac858']
   });
 
   createRankCompareBarController({
     chartId: 'chart-tsi-bar', statusId: 'status-tsi-bar',
-    yearAId: 'tsibar-yearA', yearBId: 'tsibar-yearB',
-    companyId: 'tsibar-company', monthId: 'tsibar-month',
-    incomeCatId: 'tsibar-incomeCat', resetBtnId: 'tsibar-resetBtn',
+    aCompanyId: 'tsibar-a-company', aYearId: 'tsibar-a-year', aMonthId: 'tsibar-a-month',
+    bCompanyId: 'tsibar-b-company', bYearId: 'tsibar-b-year', bMonthId: 'tsibar-b-month',
+    sharedIncomeCatId: 'tsibar-shared-incomeCat',
+    resetBtnId: 'tsibar-resetBtn',
     jsonUrl: './TSI.json', colorPair: ['#91cc75', '#ee6666']
   });
 
@@ -1505,7 +1689,6 @@
     ]
   });
 
-  // 成本费用双环饼图
   createDoubleRingPieController({
     chartId: 'chart-rce-pie', statusId: 'status-rce-pie',
     innerCompanyId: 'rcepie-inner-company', innerYearId: 'rcepie-inner-year', innerMonthId: 'rcepie-inner-month',
@@ -1516,7 +1699,6 @@
     outerColor: ['#7fa3e0', '#b5d9a8', '#fad27a', '#f39b9b', '#a8d8eb', '#7fc9a6', '#fdb88a', '#c29dd6', '#f0b3dc', '#d0d8e8']
   });
 
-  // 课消分析组合图
   createTuitionNestController({
     chartId: 'chart-tsi-nest', statusId: 'status-tsi-nest',
     companyId: 'tsinest-company', yearId: 'tsinest-year', monthId: 'tsinest-month',
