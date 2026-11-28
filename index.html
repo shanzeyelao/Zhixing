@@ -233,39 +233,57 @@
       cursor: pointer;
     }
 
-    /* 收入费用利润图：左右独立筛选区 */
+    /* ===== 收入费用利润图筛选区：宽屏尽量排成一排 ===== */
     .dual-filter {
       display: flex;
-      gap: 24px;
-      flex-wrap: wrap;
+      flex-wrap: nowrap;          /* 宽屏不换行 */
+      gap: 8px 12px;
       margin-bottom: 22px;
-      padding: 16px 18px;
+      padding: 14px 16px;
       background: #f8fafd;
       border-radius: 14px;
       border: 1px solid #e9edf4;
+      align-items: flex-end;
+      overflow-x: auto;           /* 窄屏兜底横向滚动 */
     }
     .dual-filter .filter-side {
-      flex: 1 1 320px;
+      flex: 0 0 auto;             /* 不再强行占宽 */
       display: flex;
-      flex-wrap: wrap;
-      gap: 16px 20px;
+      flex-wrap: nowrap;
+      gap: 6px 8px;
       align-items: flex-end;
     }
     .dual-filter .filter-side .side-title {
-      width: 100%;
+      display: none;              /* 隐藏“左侧区域/右侧区域”标题以节省空间 */
+    }
+    .dual-filter .filter-item {
+      min-width: 78px;            /* 压缩下拉宽度 */
+    }
+    .dual-filter .filter-item select {
+      padding: 7px 6px;           /* 缩小内边距 */
       font-size: 13px;
-      font-weight: 700;
-      color: #5470c6;
-      letter-spacing: 0.5px;
-      margin-bottom: -4px;
+      min-width: 78px;
+    }
+    .dual-filter .filter-item label {
+      font-size: 11px;
+      letter-spacing: 0;
+      white-space: nowrap;
     }
     .dual-filter .common-filter {
+      flex: 0 0 auto;
       display: flex;
-      flex-wrap: wrap;
-      gap: 16px 20px;
+      flex-wrap: nowrap;
+      gap: 6px 8px;
       align-items: flex-end;
-      border-left: 2px dashed #dde3ea;
-      padding-left: 24px;
+      border-left: 1px dashed #cdd8e3;
+      padding-left: 10px;
+    }
+    .dual-filter .reset-btn {
+      flex: 0 0 auto;
+      margin-left: 4px;
+      padding: 7px 12px;
+      font-size: 13px;
+      height: 36px;
     }
   </style>
 </head>
@@ -320,7 +338,7 @@
     <a class="card" href="#section-profit">
       <span class="card-icon">📈</span>
       <div class="card-title">收入费用利润图</div>
-      <div class="card-desc">左右区域独立筛选，对比收入、费用与利润，数据源 RCEDetail.json</div>
+      <div class="card-desc">左右区域独立筛选，各自展示12个月数据，数据源 RCEDetail.json</div>
       <span class="card-badge" style="background:#fff0e6;color:#d35400;">查看详情 →</span>
     </a>
     <a class="card" href="#section-tsi-nest">
@@ -522,10 +540,10 @@
   <!-- ========== 收入费用利润图（RCEDetail.json） ========== -->
   <section id="section-profit" class="detail-section">
     <h2>📈 收入费用利润图</h2>
-    <p class="section-hint">数据源：RCEDetail.json · 左右区域独立筛选（公司/年/月），科目属性为共同项，X 轴按月份对比收入、费用与利润</p>
+    <p class="section-hint">数据源：RCEDetail.json · 左右区域独立筛选（公司/年/月），科目属性为共同项，各自展示12个月金额</p>
 
     <div class="dual-filter" id="filters-profit">
-      <!-- 左侧独立筛选 -->
+      <!-- 左侧区域 -->
       <div class="filter-side">
         <div class="side-title">🔵 左侧区域</div>
         <div class="filter-item">
@@ -542,7 +560,7 @@
         </div>
       </div>
 
-      <!-- 右侧独立筛选 -->
+      <!-- 右侧区域 -->
       <div class="filter-side">
         <div class="side-title">🟢 右侧区域</div>
         <div class="filter-item">
@@ -559,7 +577,7 @@
         </div>
       </div>
 
-      <!-- 共同筛选：科目属性 -->
+      <!-- 共同项 -->
       <div class="common-filter">
         <div class="filter-item">
           <label>科目属性（共同）</label>
@@ -1330,9 +1348,7 @@
   }
 
   // ================================================================
-  // 4. 收入费用利润图控制器（修改版）
-  //    左右区域独立筛选（公司/年/月），科目属性为共同项
-  //    X 轴只标月份（1月~12月），无 A/B 前缀
+  // 4. 收入费用利润图控制器（左右各自12个月）
   // ================================================================
   function createProfitController(config) {
     const {
@@ -1359,7 +1375,6 @@
     let rawData = [];
     let allYears = [];
 
-    // 通用匹配：公司/年/月 + 科目属性（若选了）
     function matchRow(row, company, year, month) {
       if (company.value && row['公司'] !== company.value) return false;
       if (year.value && String(row['年']) !== String(year.value)) return false;
@@ -1368,7 +1383,6 @@
       return true;
     }
 
-    // 聚合某侧数据到 12 个月的金额数组
     function aggregateByMonth(company, year, month) {
       const sums = new Array(12).fill(0);
       rawData.forEach(row => {
@@ -1385,10 +1399,8 @@
       const leftData = aggregateByMonth(leftCompany, leftYear, leftMonth);
       const rightData = aggregateByMonth(rightCompany, rightYear, rightMonth);
 
-      // X 轴只标月份，无 A/B 前缀
       const months = ['1月','2月','3月','4月','5月','6月','7月','8月','9月','10月','11月','12月'];
 
-      // 左右摘要
       const leftParts = [];
       if (leftCompany.value) leftParts.push(leftCompany.value);
       if (leftYear.value) leftParts.push(leftYear.value + '年');
